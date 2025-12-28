@@ -140,3 +140,22 @@ button:active {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+.role-impostor {
+  color: var(--danger);
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.role-word {
+  color: var(--accent);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.word-highlight {
+  color: var(--accent);
+  font-weight: 800;
+}
+

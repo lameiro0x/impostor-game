@@ -99,13 +99,21 @@ function showRoleScreen() {
 }
 
 btnShowRole.onclick = () => {
-  roleText.textContent =
-    game.roles[game.currentPlayer] === "IMPOSTOR"
-      ? "Eres el IMPOSTOR"
-      : `La palabra es: ${game.roles[game.currentPlayer]}`;
+  roleText.className = "";
+
+  if (game.roles[game.currentPlayer] === "IMPOSTOR") {
+    roleText.textContent = "ERES EL IMPOSTOR";
+    roleText.classList.add("role-impostor");
+  } else {
+    roleText.innerHTML = `La palabra es: <span class="word-highlight">
+      ${game.roles[game.currentPlayer]}
+    </span>`;
+  }
 
   roleOverlay.classList.remove("hidden");
 };
+
+
 
 btnNextPlayer.onclick = () => {
   roleOverlay.classList.add("hidden");
