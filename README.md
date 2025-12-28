@@ -21,7 +21,7 @@ The project is designed as a small but complete frontend application, demonstrat
 
 A live version of the application is available here:
 
-👉 **https://impostor-game.your-domain.com**
+👉 **[https://impostor-game.your-domain.com](https://play.lameiro0x.com/)**
 
 ---
 
