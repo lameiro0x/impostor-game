@@ -1,4 +1,3 @@
-// ---------- SCREENS ----------
 const screens = {
   start: document.getElementById("screen-start"),
   config: document.getElementById("screen-config"),
@@ -7,7 +6,6 @@ const screens = {
   end: document.getElementById("screen-end"),
 };
 
-// ---------- BUTTONS ----------
 const btnStart = document.getElementById("btn-start");
 const btnConfigNext = document.getElementById("btn-config-next");
 const btnShowRole = document.getElementById("btn-show-role");
@@ -17,7 +15,6 @@ const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 const btnLang = document.getElementById("btn-lang");
 
-// ---------- INPUTS ----------
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
 const roundsInput = document.getElementById("rounds");
@@ -25,20 +22,16 @@ const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
 
-// ---------- ROLE / ROUND ----------
 const playerTitle = document.getElementById("player-title");
 const roundIndicator = document.getElementById("round-indicator");
 const roleOverlay = document.getElementById("role-overlay");
 const roleText = document.getElementById("role-text");
 const roundTitle = document.getElementById("round-title");
 
-// ---------- WORDS (se cargan desde JSON) ----------
 let WORDS = {};
 
-// ---------- GAME STATE ----------
 let game = {};
 
-// ---------- LANGUAGE ----------
 const LANG_KEY = "impostor-lang";
 const SUPPORTED_LANGS = ["es", "en"];
 
@@ -160,7 +153,6 @@ function setLanguage(lang) {
   populateThemes();
 }
 
-// ---------- HELPERS ----------
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
   screens[name].classList.remove("hidden");
@@ -174,7 +166,6 @@ function clearGame() {
   localStorage.removeItem("impostor-game");
 }
 
-// ---------- LOAD WORDS ----------
 fetch("data/words.json")
   .then(res => res.json())
   .then(data => {
@@ -200,7 +191,6 @@ function populateThemes() {
     themeSelect.appendChild(option);
   });
 
-  // Opción personalizada
   const custom = document.createElement("option");
   custom.value = "custom";
   custom.textContent = t("customTheme");
@@ -216,7 +206,6 @@ function populateThemes() {
   );
 }
 
-// ---------- EVENTS ----------
 if (btnLang) {
   btnLang.onclick = () => {
     setLanguage(currentLang === "es" ? "en" : "es");
@@ -246,7 +235,7 @@ btnConfigNext.onclick = () => {
   saveGame();
 };
 
-// ---------- GAME LOGIC ----------
+
 function startRound() {
   game.currentPlayer = 0;
 
@@ -335,7 +324,7 @@ btnRestart.onclick = () => {
 
 applyTranslations();
 
-// ---------- RESTORE GAME ----------
+
 const savedGame = localStorage.getItem("impostor-game");
 
 if (savedGame) {
