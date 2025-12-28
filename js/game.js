@@ -222,10 +222,70 @@ themeSelect.onchange = () => {
 };
 
 btnConfigNext.onclick = () => {
+  const players = parseInt(playersInput.value, 10);
+  const impostors = parseInt(impostorsInput.value, 10);
+  const totalRounds = parseInt(roundsInput.value, 10);
+  const messages = currentLang === "en"
+    ? {
+      playersMin: "Players must be at least 3.",
+      impostorsMin: "There must be at least 1 impostor.",
+      impostorsMax: "Impostors must be fewer than players.",
+      roundsMin: "Rounds must be at least 1.",
+      customWordsMin: "Add at least 3 distinct custom words.",
+    }
+    : {
+      playersMin: "Debe haber al menos 3 jugadores.",
+      impostorsMin: "Debe haber al menos 1 impostor.",
+      impostorsMax: "Los impostores deben ser menos que los jugadores.",
+      roundsMin: "Debe haber al menos 1 ronda.",
+      customWordsMin: "Añade al menos 3 palabras personalizadas distintas.",
+    };
+
+  if (!Number.isFinite(players) || players < 3) {
+    alert(messages.playersMin);
+    return;
+  }
+
+  if (!Number.isFinite(impostors) || impostors < 1) {
+    alert(messages.impostorsMin);
+    return;
+  }
+
+  if (impostors >= players) {
+    alert(messages.impostorsMax);
+    return;
+  }
+
+  if (!Number.isFinite(totalRounds) || totalRounds < 1) {
+    alert(messages.roundsMin);
+    return;
+  }
+
+  if (themeSelect.value === "custom") {
+    const seen = new Set();
+    const cleaned = customWordsInput.value
+      .split("\n")
+      .map(word => word.trim())
+      .filter(word => {
+        if (!word || seen.has(word)) {
+          return false;
+        }
+        seen.add(word);
+        return true;
+      });
+
+    customWordsInput.value = cleaned.join("\n");
+
+    if (cleaned.length < 3) {
+      alert(messages.customWordsMin);
+      return;
+    }
+  }
+
   game = {
-    players: parseInt(playersInput.value),
-    impostors: parseInt(impostorsInput.value),
-    totalRounds: parseInt(roundsInput.value),
+    players,
+    impostors,
+    totalRounds,
     currentRound: 1,
     roles: [],
     currentPlayer: 0,
