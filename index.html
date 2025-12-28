@@ -10,26 +10,27 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
+  <button id="btn-lang" class="lang-toggle" type="button" aria-label="Cambiar idioma" title="Cambiar idioma">ES</button>
 
 <section id="screen-start">
   <div class="hero">
     <div class="hero-icon">🎭</div>
-    <h1 class="game-title">¿Quién es el impostor?</h1>
-    <p class="game-subtitle">
+    <h1 class="game-title" data-i18n="title">¿Quién es el impostor?</h1>
+    <p class="game-subtitle" data-i18n="subtitle">
       Un juego rápido de deducción social para grupos
     </p>
 
     <ul class="how-to">
-      <li>Elige jugadores y tema</li>
-      <li>Descubre tu rol en secreto</li>
-      <li>Encuentra al impostor</li>
+      <li data-i18n="how1">Elige jugadores y tema</li>
+      <li data-i18n="how2">Descubre tu rol en secreto</li>
+      <li data-i18n="how3">Encuentra al impostor</li>
     </ul>
 
-    <button id="btn-start">Jugar</button>
+    <button id="btn-start" data-i18n="play">Jugar</button>
   </div>
 
   <footer class="footer">
-    <span>Creado por <strong>lameiro0x</strong></span>
+    <span><span data-i18n="createdBy">Creado por</span> <strong>lameiro0x</strong></span>
     ·
     <a href="https://github.com/lameiro0x" target="_blank">GitHub</a>
     ·
@@ -39,25 +40,25 @@
 
 
 <section id="screen-config" class="hidden">
-  <h2>Configuración</h2>
+  <h2 data-i18n="config">Configuración</h2>
 
   <label>
-    Jugadores
+    <span data-i18n="players">Jugadores</span>
     <input type="number" id="players" min="3" value="4">
   </label>
 
   <label>
-    Impostores
+    <span data-i18n="impostors">Impostores</span>
     <input type="number" id="impostors" min="1" value="1">
   </label>
 
   <label>
-    Rondas
+    <span data-i18n="rounds">Rondas</span>
     <input type="number" id="rounds" min="1" value="3">
   </label>
 
   <label>
-    Tema
+    <span data-i18n="theme">Tema</span>
     <select id="theme">
       <option value="food">Comida</option>
       <option value="places">Lugares</option>
@@ -66,37 +67,38 @@
   </label>
 
   <label id="custom-words-container" class="hidden">
-    Palabras personalizadas (una por línea)
+    <span data-i18n="customWords">Palabras personalizadas (una por línea)</span>
     <textarea id="custom-words"></textarea>
   </label>
 
-  <button id="btn-config-next">Empezar</button>
+  <button id="btn-config-next" data-i18n="startGame">Empezar</button>
 </section>
 
 <section id="screen-role" class="hidden">
   <h2 id="player-title"></h2>
   <p id="round-indicator"></p>
-  <button id="btn-show-role">Ver mi rol</button>
+  <button id="btn-show-role" data-i18n="viewRole">Ver mi rol</button>
 </section>
 
 <div id="role-overlay" class="hidden">
   <div class="role-card">
     <p id="role-text"></p>
-    <button id="btn-next-player">Siguiente jugador</button>
+    <button id="btn-next-player" data-i18n="nextPlayer">Siguiente jugador</button>
   </div>
 </div>
 
 <section id="screen-round-end" class="hidden">
   <h2 id="round-title"></h2>
-  <button id="btn-next-round">Siguiente ronda</button>
-  <button id="btn-end-game">Terminar partida</button>
+  <button id="btn-next-round" data-i18n="nextRound">Siguiente ronda</button>
+  <button id="btn-end-game" data-i18n="endGame">Terminar partida</button>
 </section>
 
 <section id="screen-end" class="hidden">
-  <h2>Partida terminada</h2>
-  <button id="btn-restart">Reiniciar</button>
+  <h2 data-i18n="gameOver">Partida terminada</h2>
+  <button id="btn-restart" data-i18n="restart">Reiniciar</button>
 </section>
 
+<script src="js/i18n.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

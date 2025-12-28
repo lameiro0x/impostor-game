@@ -15,6 +15,7 @@ const btnNextPlayer = document.getElementById("btn-next-player");
 const btnNextRound = document.getElementById("btn-next-round");
 const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
+const btnLang = document.getElementById("btn-lang");
 
 // ---------- INPUTS ----------
 const playersInput = document.getElementById("players");
@@ -36,6 +37,128 @@ let WORDS = {};
 
 // ---------- GAME STATE ----------
 let game = {};
+
+// ---------- LANGUAGE ----------
+const LANG_KEY = "impostor-lang";
+const SUPPORTED_LANGS = ["es", "en"];
+
+function resolveInitialLang() {
+  const saved = localStorage.getItem(LANG_KEY);
+  if (SUPPORTED_LANGS.includes(saved)) {
+    return saved;
+  }
+
+  const browserLang = (navigator.language || "").toLowerCase();
+  return browserLang.startsWith("es") ? "es" : "en";
+}
+
+let currentLang = resolveInitialLang();
+document.documentElement.lang = currentLang;
+
+function t(key) {
+  if (I18N[currentLang] && Object.prototype.hasOwnProperty.call(I18N[currentLang], key)) {
+    return I18N[currentLang][key];
+  }
+  if (I18N.es && Object.prototype.hasOwnProperty.call(I18N.es, key)) {
+    return I18N.es[key];
+  }
+  return key;
+}
+
+function formatText(template, params) {
+  return template.replace(/\{(\w+)\}/g, (_, token) => {
+    if (Object.prototype.hasOwnProperty.call(params, token)) {
+      return params[token];
+    }
+    return `{${token}}`;
+  });
+}
+
+function applyTranslations() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = t(key);
+  });
+
+  document.title = t("pageTitle");
+
+  if (btnLang) {
+    btnLang.textContent = currentLang.toUpperCase();
+    btnLang.setAttribute("aria-label", t("langToggle"));
+    btnLang.title = t("langToggle");
+  }
+
+  refreshDynamicText();
+}
+
+function refreshDynamicText() {
+  if (!screens.role.classList.contains("hidden")) {
+    updateRoleHeader();
+  }
+  if (!screens.roundEnd.classList.contains("hidden")) {
+    updateRoundEndTitle();
+  }
+  if (!roleOverlay.classList.contains("hidden")) {
+    renderRoleText();
+  }
+}
+
+function updateRoleHeader() {
+  if (
+    !Number.isFinite(game.currentPlayer) ||
+    !Number.isFinite(game.currentRound) ||
+    !Number.isFinite(game.totalRounds)
+  ) {
+    return;
+  }
+
+  playerTitle.textContent = formatText(t("playerTitle"), {
+    num: game.currentPlayer + 1,
+  });
+  roundIndicator.textContent = formatText(t("roundIndicator"), {
+    current: game.currentRound,
+    total: game.totalRounds,
+  });
+}
+
+function updateRoundEndTitle() {
+  if (!Number.isFinite(game.currentRound)) {
+    return;
+  }
+
+  roundTitle.textContent = formatText(t("roundEndTitle"), {
+    round: game.currentRound,
+  });
+}
+
+function renderRoleText() {
+  roleText.className = "";
+
+  if (!game.roles || !Number.isFinite(game.currentPlayer)) {
+    return;
+  }
+
+  if (game.roles[game.currentPlayer] === "IMPOSTOR") {
+    roleText.textContent = t("impostor");
+    roleText.classList.add("role-impostor");
+  } else {
+    roleText.innerHTML = `${t("wordIs")} <span class="word-highlight">
+      ${game.roles[game.currentPlayer]}
+    </span>`;
+  }
+}
+
+function setLanguage(lang) {
+  if (!SUPPORTED_LANGS.includes(lang)) {
+    return;
+  }
+
+  currentLang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  document.documentElement.lang = lang;
+  applyTranslations();
+  populateThemes();
+}
 
 // ---------- HELPERS ----------
 function showScreen(name) {
@@ -63,23 +186,43 @@ fetch("data/words.json")
   });
 
 function populateThemes() {
+  if (!WORDS || Object.keys(WORDS).length === 0) {
+    return;
+  }
+
+  const currentValue = themeSelect.value;
   themeSelect.innerHTML = "";
 
   Object.keys(WORDS).forEach(key => {
     const option = document.createElement("option");
     option.value = key;
-    option.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+    option.textContent = WORDS[key][currentLang] || WORDS[key].es || WORDS[key].en || key;
     themeSelect.appendChild(option);
   });
 
   // Opción personalizada
   const custom = document.createElement("option");
   custom.value = "custom";
-  custom.textContent = "Personalizado";
+  custom.textContent = t("customTheme");
   themeSelect.appendChild(custom);
+
+  if (currentValue && (currentValue === "custom" || WORDS[currentValue])) {
+    themeSelect.value = currentValue;
+  }
+
+  customWordsContainer.classList.toggle(
+    "hidden",
+    themeSelect.value !== "custom"
+  );
 }
 
 // ---------- EVENTS ----------
+if (btnLang) {
+  btnLang.onclick = () => {
+    setLanguage(currentLang === "es" ? "en" : "es");
+  };
+}
+
 btnStart.onclick = () => showScreen("config");
 
 themeSelect.onchange = () => {
@@ -114,11 +257,14 @@ function startRound() {
       .map(w => w.trim())
       .filter(Boolean);
   } else {
-    words = WORDS[themeSelect.value];
+    const theme = WORDS[themeSelect.value];
+    words = theme && theme.words
+      ? theme.words[currentLang] || theme.words.es || theme.words.en
+      : [];
   }
 
   if (!words || words.length === 0) {
-    alert("No hay palabras disponibles para este tema");
+    alert(t("noWords"));
     return;
   }
 
@@ -140,25 +286,12 @@ function startRound() {
 }
 
 function showRoleScreen() {
-  playerTitle.textContent = `Jugador ${game.currentPlayer + 1}`;
-  roundIndicator.textContent =
-    `Ronda ${game.currentRound} / ${game.totalRounds}`;
-
+  updateRoleHeader();
   showScreen("role");
 }
 
 btnShowRole.onclick = () => {
-  roleText.className = "";
-
-  if (game.roles[game.currentPlayer] === "IMPOSTOR") {
-    roleText.textContent = "ERES EL IMPOSTOR";
-    roleText.classList.add("role-impostor");
-  } else {
-    roleText.innerHTML = `La palabra es: <span class="word-highlight">
-      ${game.roles[game.currentPlayer]}
-    </span>`;
-  }
-
+  renderRoleText();
   roleOverlay.classList.remove("hidden");
 };
 
@@ -175,8 +308,7 @@ btnNextPlayer.onclick = () => {
 };
 
 function showEndOfRound() {
-  roundTitle.textContent = `Fin de la ronda ${game.currentRound}`;
-
+  updateRoundEndTitle();
   btnNextRound.classList.toggle(
     "hidden",
     game.currentRound >= game.totalRounds
@@ -200,6 +332,8 @@ btnRestart.onclick = () => {
   clearGame();
   showScreen("start");
 };
+
+applyTranslations();
 
 // ---------- RESTORE GAME ----------
 const savedGame = localStorage.getItem("impostor-game");
