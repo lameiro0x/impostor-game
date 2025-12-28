@@ -5,6 +5,7 @@
   --muted: #9ca3af;        /* texto secundario */
   --accent: #38bdf8;       /* azul vivo */
   --danger: #f87171;
+  --card-border: rgba(148,163,184,0.45);
 }
 
 * {
@@ -30,7 +31,10 @@ section {
   max-width: 420px;
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    0 16px 40px rgba(2,6,23,0.6),
+    0 0 0 1px rgba(255,255,255,0.03);
   animation: fadeIn 0.4s ease;
   margin: auto;
 }
