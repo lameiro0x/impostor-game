@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de Deducción</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<section id="screen-start">
+  <h1>Juego de Deducción</h1>
+  <button id="btn-start">Jugar</button>
+</section>
+
+<section id="screen-config" class="hidden">
+  <h2>Configuración</h2>
+
+  <label>
+    Jugadores
+    <input type="number" id="players" min="3" value="4">
+  </label>
+
+  <label>
+    Impostores
+    <input type="number" id="impostors" min="1" value="1">
+  </label>
+
+  <label>
+    Tema
+    <select id="theme">
+      <option value="food">Comida</option>
+      <option value="places">Lugares</option>
+      <option value="custom">Personalizado</option>
+    </select>
+  </label>
+
+  <label id="custom-words-container" class="hidden">
+    Palabras personalizadas (una por línea)
+    <textarea id="custom-words"></textarea>
+  </label>
+
+  <button id="btn-config-next">Empezar</button>
+</section>
+
+<section id="screen-role" class="hidden">
+  <h2 id="player-title"></h2>
+  <button id="btn-show-role">Ver mi rol</button>
+
+  <div id="role-result" class="hidden">
+    <p id="role-text"></p>
+    <button id="btn-next-player">Siguiente</button>
+  </div>
+</section>
+
+<section id="screen-end" class="hidden">
+  <h2>Todos listos</h2>
+  <p>Empieza la partida</p>
+  <button id="btn-restart">Reiniciar</button>
+</section>
+
+<script src="js/game.js"></script>
+</body>
+</html>
