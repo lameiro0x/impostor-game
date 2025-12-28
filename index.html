@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Juego de Deducción</title>
+  <title>Juego del Impostor</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
 
 <section id="screen-start">
-  <h1>Juego de Deducción</h1>
+  <h1>Juego del Impostor</h1>
   <button id="btn-start">Jugar</button>
 </section>
 
@@ -24,6 +24,11 @@
   <label>
     Impostores
     <input type="number" id="impostors" min="1" value="1">
+  </label>
+
+  <label>
+    Rondas
+    <input type="number" id="rounds" min="1" value="3">
   </label>
 
   <label>
@@ -45,17 +50,25 @@
 
 <section id="screen-role" class="hidden">
   <h2 id="player-title"></h2>
+  <p id="round-indicator"></p>
   <button id="btn-show-role">Ver mi rol</button>
+</section>
 
-  <div id="role-result" class="hidden">
+<div id="role-overlay" class="hidden">
+  <div class="role-card">
     <p id="role-text"></p>
-    <button id="btn-next-player">Siguiente</button>
+    <button id="btn-next-player">Siguiente jugador</button>
   </div>
+</div>
+
+<section id="screen-round-end" class="hidden">
+  <h2 id="round-title"></h2>
+  <button id="btn-next-round">Siguiente ronda</button>
+  <button id="btn-end-game">Terminar partida</button>
 </section>
 
 <section id="screen-end" class="hidden">
-  <h2>Todos listos</h2>
-  <p>Empieza la partida</p>
+  <h2>Partida terminada</h2>
   <button id="btn-restart">Reiniciar</button>
 </section>
 

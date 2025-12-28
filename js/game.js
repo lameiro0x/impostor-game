@@ -2,6 +2,7 @@ const screens = {
   start: document.getElementById("screen-start"),
   config: document.getElementById("screen-config"),
   role: document.getElementById("screen-role"),
+  roundEnd: document.getElementById("screen-round-end"),
   end: document.getElementById("screen-end"),
 };
 
@@ -9,24 +10,29 @@ const btnStart = document.getElementById("btn-start");
 const btnConfigNext = document.getElementById("btn-config-next");
 const btnShowRole = document.getElementById("btn-show-role");
 const btnNextPlayer = document.getElementById("btn-next-player");
+const btnNextRound = document.getElementById("btn-next-round");
+const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
+const roundsInput = document.getElementById("rounds");
 const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
 
 const playerTitle = document.getElementById("player-title");
-const roleResult = document.getElementById("role-result");
+const roundIndicator = document.getElementById("round-indicator");
+const roleOverlay = document.getElementById("role-overlay");
 const roleText = document.getElementById("role-text");
-
-let game = {};
+const roundTitle = document.getElementById("round-title");
 
 const WORDS = {
   food: ["Pizza", "Hamburguesa", "Sushi", "Paella"],
   places: ["Playa", "Montaña", "Aeropuerto", "Cine"],
 };
+
+let game = {};
 
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
@@ -43,8 +49,20 @@ themeSelect.onchange = () => {
 };
 
 btnConfigNext.onclick = () => {
-  const players = parseInt(playersInput.value);
-  const impostors = parseInt(impostorsInput.value);
+  game = {
+    players: parseInt(playersInput.value),
+    impostors: parseInt(impostorsInput.value),
+    totalRounds: parseInt(roundsInput.value),
+    currentRound: 1,
+    roles: [],
+    currentPlayer: 0,
+  };
+
+  startRound();
+};
+
+function startRound() {
+  game.currentPlayer = 0;
 
   let words;
   if (themeSelect.value === "custom") {
@@ -57,49 +75,65 @@ btnConfigNext.onclick = () => {
   }
 
   const word = words[Math.floor(Math.random() * words.length)];
-  const roles = Array(players).fill(word);
+  const roles = Array(game.players).fill(word);
 
-  for (let i = 0; i < impostors; i++) {
-    let idx;
-    do {
-      idx = Math.floor(Math.random() * players);
-    } while (roles[idx] === "IMPOSTOR");
-    roles[idx] = "IMPOSTOR";
+  let assigned = 0;
+  while (assigned < game.impostors) {
+    const idx = Math.floor(Math.random() * game.players);
+    if (roles[idx] !== "IMPOSTOR") {
+      roles[idx] = "IMPOSTOR";
+      assigned++;
+    }
   }
 
-  game = {
-    players,
-    roles,
-    current: 0,
-  };
-
-  roleResult.classList.add("hidden");
+  game.roles = roles;
   showRoleScreen();
-};
+}
 
 function showRoleScreen() {
-  playerTitle.textContent = `Jugador ${game.current + 1}`;
+  playerTitle.textContent = `Jugador ${game.currentPlayer + 1}`;
+  roundIndicator.textContent =
+    `Ronda ${game.currentRound} / ${game.totalRounds}`;
+
   showScreen("role");
 }
 
 btnShowRole.onclick = () => {
   roleText.textContent =
-    game.roles[game.current] === "IMPOSTOR"
+    game.roles[game.currentPlayer] === "IMPOSTOR"
       ? "Eres el IMPOSTOR"
-      : `La palabra es: ${game.roles[game.current]}`;
+      : `La palabra es: ${game.roles[game.currentPlayer]}`;
 
-  roleResult.classList.remove("hidden");
+  roleOverlay.classList.remove("hidden");
 };
 
 btnNextPlayer.onclick = () => {
-  game.current++;
-  roleResult.classList.add("hidden");
+  roleOverlay.classList.add("hidden");
+  game.currentPlayer++;
 
-  if (game.current >= game.players) {
-    showScreen("end");
+  if (game.currentPlayer >= game.players) {
+    showEndOfRound();
   } else {
     showRoleScreen();
   }
 };
+
+function showEndOfRound() {
+  roundTitle.textContent = `Fin de la ronda ${game.currentRound}`;
+
+  btnNextRound.classList.toggle(
+    "hidden",
+    game.currentRound >= game.totalRounds
+  );
+
+  showScreen("roundEnd");
+}
+
+btnNextRound.onclick = () => {
+  game.currentRound++;
+  startRound();
+};
+
+btnEndGame.onclick = () => showScreen("end");
 
 btnRestart.onclick = () => showScreen("start");
