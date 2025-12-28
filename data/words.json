@@ -1,0 +1,116 @@
+{
+  "🍕 Comida": [
+    "Pizza","Hamburguesa","Sushi","Paella","Tacos","Pasta","Ensalada","Croquetas","Kebab","Empanada",
+    "Arroz","Lentejas","Garbanzos","Pollo","Ternera","Pescado","Marisco","Jamón","Queso","Pan",
+    "Bocadillo","Sandwich","Hot dog","Patatas fritas","Tortilla","Huevos","Bacon","Salchichas","Churros","Chocolate",
+    "Helado","Bizcocho","Tarta","Galletas","Donut","Magdalena","Flan","Natillas","Yogur","Fruta",
+    "Manzana","Plátano","Naranja","Fresa","Uvas","Melón","Sandía","Piña","Mango","Aguacate",
+    "Sopa","Caldo","Gazpacho","Salmorejo","Ramen","Curry","Lasagna","Pizza margarita","Risotto","Paella mixta",
+    "Nachos","Burrito","Quesadilla","Falafel","Hummus","Cuscús","Shawarma","Wok","Tempura","Sashimi",
+    "Ceviche","Arepa","Tostada","Café","Té","Refresco","Zumo","Batido","Cerveza","Vino"
+  ],
+
+  "🌍 Lugares": [
+    "Playa","Montaña","Aeropuerto","Cine","Hospital","Escuela","Universidad","Biblioteca","Restaurante","Bar",
+    "Discoteca","Parque","Jardín","Bosque","Desierto","Selva","Ciudad","Pueblo","Isla","Hotel",
+    "Camping","Estadio","Gimnasio","Piscina","Centro comercial","Supermercado","Mercado","Panadería","Carnicería","Farmacia",
+    "Ayuntamiento","Oficina","Fábrica","Almacén","Puerto","Faro","Carretera","Autopista","Gasolinera","Parking",
+    "Museo","Teatro","Auditorio","Iglesia","Catedral","Mezquita","Sinagoga","Cementerio","Plaza","Fuente",
+    "Puente","Túnel","Castillo","Palacio","Monumento","Rascacielos","Barrio","Metro","Estación","Andén",
+    "Aeródromo","Terminal","Aduana","Consulado","Embajada","Banco","Caja fuerte","Juzgado","Comisaría","Cuartel",
+    "Base militar","Observatorio","Laboratorio","Hospital psiquiátrico","Clínica","Consulta","Sala de espera","Urgencias","Quirófano","UCI"
+  ],
+
+  "🐶 Animales": [
+    "Perro","Gato","Caballo","Vaca","Cerdo","Oveja","Cabra","Gallina","Gallo","Pato",
+    "Conejo","Ratón","Rata","Hámster","Cobaya","Hurón","Zorro","Lobo","Oso","León",
+    "Tigre","Leopardo","Pantera","Guepardo","Elefante","Jirafa","Rinoceronte","Hipopótamo","Cebra","Búfalo",
+    "Mono","Gorila","Chimpancé","Orangután","Koala","Canguro","Panda","Perezoso","Mapache","Nutria",
+    "Delfín","Ballena","Tiburón","Foca","León marino","Pulpo","Calamar","Medusa","Estrella de mar","Cangrejo",
+    "Langosta","Camaleón","Iguana","Lagarto","Serpiente","Cobra","Pitón","Boa","Cocodrilo","Alligator",
+    "Águila","Halcón","Búho","Lechuza","Paloma","Gaviota","Cuervo","Loro","Canario","Pingüino",
+    "Avestruz","Emú","Flamenco","Cisne","Pavo real","Mariposa","Abeja","Avispa","Hormiga","Escarabajo"
+  ],
+
+  "🎬 Películas y Series": [
+    "Titanic","Avatar","Gladiator","Matrix","Inception","Interstellar","Rocky","Rambo","Alien","Predator",
+    "Star Wars","Harry Potter","El Señor de los Anillos","Jurassic Park","Indiana Jones","Piratas del Caribe","Terminator","Batman","Superman","Spiderman",
+    "Iron Man","Vengadores","Deadpool","Joker","Logan","The Dark Knight","Forrest Gump","El Padrino","Scarface","Taxi Driver",
+    "Breaking Bad","Better Call Saul","Juego de Tronos","House of the Dragon","The Walking Dead","Stranger Things","Dark","Lost","Prison Break","The Boys",
+    "Friends","How I Met Your Mother","The Office","Big Bang Theory","Modern Family","Los Simpson","Futurama","Rick y Morty","South Park","Padre de familia",
+    "Narcos","Peaky Blinders","Vikingos","The Witcher","Black Mirror","La Casa de Papel","Élite","Sex Education","The Crown","Sherlock",
+    "Doctor Who","Westworld","True Detective","Mindhunter","Ozark","Dexter","The Mandalorian","Andor","Loki","WandaVision"
+  ],
+
+  "🏀 Deportes": [
+    "Fútbol","Baloncesto","Tenis","Pádel","Golf","Rugby","Hockey","Béisbol","Críquet","Voleibol",
+    "Balonmano","Natación","Atletismo","Ciclismo","Boxeo","Kickboxing","Muay Thai","Judo","Karate","Taekwondo",
+    "Esgrima","Gimnasia","Escalada","Surf","Snowboard","Esquí","Patinaje","Skate","BMX","Motocross",
+    "Fórmula 1","Rally","Karting","Motociclismo","Enduro","Triatlón","Pentatlón","Decatlón","Maratón","Media maratón",
+    "Crossfit","Haltera","Powerlifting","Strongman","Yoga","Pilates","Spinning","Zumba","Aeróbic","Fitness",
+    "Waterpolo","Remo","Piragüismo","Vela","Windsurf","Kitesurf","Buceo","Apnea","Pesca","Pesca deportiva",
+    "Ajedrez","Dardos","Billar","Snooker","Bowling","Petanca","Frontón","Pelota vasca","Polo","Equitación"
+  ],
+
+  "💼 Profesiones": [
+    "Médico","Enfermero","Cirujano","Dentista","Veterinario","Farmacéutico","Psicólogo","Psiquiatra","Fisioterapeuta","Nutricionista",
+    "Profesor","Maestro","Catedrático","Investigador","Científico","Ingeniero","Programador","Desarrollador","Analista","Tester",
+    "Arquitecto","Aparejador","Diseñador","Ilustrador","Animador","Editor","Periodista","Redactor","Escritor","Guionista",
+    "Actor","Actriz","Director","Productor","Cámara","Fotógrafo","Montador","Sonidista","Músico","Cantante",
+    "Compositor","DJ","Productor musical","Técnico de sonido","Roadie","Electricista","Fontanero","Carpintero","Albañil","Yesero",
+    "Pintor","Decorador","Interiorista","Jardinero","Paisajista","Agricultor","Ganadero","Pescador","Marinero","Capitán",
+    "Piloto","Copiloto","Azafato","Controlador aéreo","Mecánico","Chapista","Conductor","Transportista","Repartidor","Mensajero",
+    "Policía","Guardia civil","Militar","Bombero","Protección civil","Vigilante","Detective","Forense","Juez","Abogado"
+  ],
+
+  "📱 Objetos cotidianos": [
+    "Teléfono","Móvil","Ordenador","Portátil","Tablet","Teclado","Ratón","Pantalla","Monitor","Televisión",
+    "Altavoz","Auriculares","Micrófono","Cámara","Webcam","Router","Cable","Cargador","Batería","Enchufe",
+    "Lámpara","Bombilla","Interruptor","Regleta","Ventilador","Aire acondicionado","Calefacción","Radiador","Estufa","Chimenea",
+    "Silla","Mesa","Sofá","Sillón","Cama","Colchón","Almohada","Sábana","Manta","Edredón",
+    "Armario","Cómoda","Cajón","Estantería","Perchero","Espejo","Cuadro","Reloj","Calendario","Agenda",
+    "Bolígrafo","Lápiz","Rotulador","Cuaderno","Libro","Revista","Periódico","Carpeta","Archivador","Mochila",
+    "Bolso","Cartera","Monedero","Llaves","Candado","Cerradura","Tijeras","Cinta","Pegamento","Regla"
+  ],
+
+  "🚗 Transporte": [
+    "Coche","Moto","Bicicleta","Patinete","Autobús","Microbús","Camión","Furgoneta","Tráiler","Caravana",
+    "Autocaravana","Taxi","VTC","Metro","Tren","Tranvía","AVE","Cercanías","Intercity","Regional",
+    "Avión","Helicóptero","Planeador","Dron","Jet","Avioneta","Ultraligero","Dirigible","Globo aerostático","Cohete",
+    "Barco","Lancha","Yate","Velero","Catamarán","Ferry","Crucero","Submarino","Bote","Zodiac",
+    "Kayak","Canoa","Piragua","Tabla","Hovercraft","Motocicleta","Scooter","Quad","Buggy","Sidecar",
+    "Monopatín","Skate","Longboard","BMX","Segway","Sillita","Carrito","Remolque","Portabicicletas","Portaequipajes",
+    "Gasolinera","Surtidor","Peaje","Semáforo","Paso de peatones","Rotonda","Señal","Radar","Multa","Carnet"
+  ],
+
+  "🧠 Acciones y verbos": [
+    "Correr","Saltar","Caminar","Andar","Bailar","Cantar","Gritar","Susurrar","Hablar","Escuchar",
+    "Mirar","Observar","Vigilar","Esconder","Buscar","Encontrar","Perder","Ganar","Competir","Entrenar",
+    "Aprender","Estudiar","Enseñar","Explicar","Comprender","Pensar","Recordar","Olvidar","Imaginar","Soñar",
+    "Dormir","Despertar","Levantarse","Sentarse","Tumbarse","Relajarse","Estresarse","Respirar","Suspirar","Bostezar",
+    "Comer","Beber","Cocinar","Hornear","Freír","Cortar","Mezclar","Probar","Saborear","Degustar",
+    "Trabajar","Descansar","Vacacionar","Viajar","Explorar","Descubrir","Planear","Organizar","Improvisar","Decidir",
+    "Comprar","Vender","Pagar","Cobrar","Ahorrar","Invertir","Regalar","Recibir","Compartir","Prestar",
+    "Ayudar","Colaborar","Competir","Discutir","Debatir","Convencer","Negociar","Aceptar","Rechazar","Ignorar"
+  ],
+
+  "🎮 Ocio y hobbies": [
+    "Videojuegos","Consola","PC","Arcade","Retro","Speedrun","Streaming","Directo","Chat","Foro",
+    "Juegos de mesa","Cartas","Póker","Mus","Brisca","Escoba","Dominó","Ajedrez","Damas","Parchís",
+    "Rol","D&D","Warhammer","Miniaturas","Pintura","Modelismo","Maquetas","Lego","Construcción","DIY",
+    "Música","Guitarra","Piano","Batería","Bajo","Violín","Canto","Karaoke","Composición","Producción",
+    "Cine","Películas","Series","Maratón","Estreno","Premios","Oscar","Festival","Rodaje","Guion",
+    "Lectura","Libros","Novela","Cómic","Manga","Anime","Fantasía","Ciencia ficción","Terror","Misterio",
+    "Deporte","Gimnasio","Yoga","Meditación","Senderismo","Camping","Acampada","Escalada","Surf","Viajar"
+  ],
+  "⚽ Futbolistas": [
+  "Pelé","Maradona","Messi","Cristiano Ronaldo","Zinedine Zidane","Ronaldinho","Ronaldo Nazario","Johan Cruyff","Beckenbauer","Di Stéfano",
+  "Xavi","Iniesta","Busquets","Pirlo","Gattuso","Maldini","Nesta","Cannavaro","Buffon","Casillas",
+  "Raúl","Fernando Torres","David Villa","Xabi Alonso","Sergio Ramos","Piqué","Carles Puyol","Marcelo","Roberto Carlos","Dani Alves",
+  "Neymar","Mbappé","Haaland","Lewandowski","Benzema","Suárez","Griezmann","Modric","Kroos","De Bruyne",
+  "Lampard","Gerrard","Scholes","Beckham","Henry","Bergkamp","Van Nistelrooy","Cantona","Giggs","Rooney",
+  "Shevchenko","Ibrahimovic","Eto'o","Drogba","Yaya Touré","Kaká","Rivaldo","Figo","Luis Suárez","Forlán",
+  "Batistuta","Riquelme","Aimar","Tevez","Aguero","Di María","Mascherano","Zanetti","Salah","Mané",
+  "Alisson","Ederson","Neuer","Ter Stegen","Courtois","Oblak","Keylor Navas","Van Dijk","Ramos","Pepe"
+  ]
+}

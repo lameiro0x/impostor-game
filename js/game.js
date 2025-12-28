@@ -1,3 +1,4 @@
+// ---------- SCREENS ----------
 const screens = {
   start: document.getElementById("screen-start"),
   config: document.getElementById("screen-config"),
@@ -6,6 +7,7 @@ const screens = {
   end: document.getElementById("screen-end"),
 };
 
+// ---------- BUTTONS ----------
 const btnStart = document.getElementById("btn-start");
 const btnConfigNext = document.getElementById("btn-config-next");
 const btnShowRole = document.getElementById("btn-show-role");
@@ -14,6 +16,7 @@ const btnNextRound = document.getElementById("btn-next-round");
 const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 
+// ---------- INPUTS ----------
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
 const roundsInput = document.getElementById("rounds");
@@ -21,24 +24,62 @@ const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
 
+// ---------- ROLE / ROUND ----------
 const playerTitle = document.getElementById("player-title");
 const roundIndicator = document.getElementById("round-indicator");
 const roleOverlay = document.getElementById("role-overlay");
 const roleText = document.getElementById("role-text");
 const roundTitle = document.getElementById("round-title");
 
-const WORDS = {
-  food: ["Pizza", "Hamburguesa", "Sushi", "Paella"],
-  places: ["Playa", "Montaña", "Aeropuerto", "Cine"],
-};
+// ---------- WORDS (se cargan desde JSON) ----------
+let WORDS = {};
 
+// ---------- GAME STATE ----------
 let game = {};
 
+// ---------- HELPERS ----------
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
   screens[name].classList.remove("hidden");
 }
 
+function saveGame() {
+  localStorage.setItem("impostor-game", JSON.stringify(game));
+}
+
+function clearGame() {
+  localStorage.removeItem("impostor-game");
+}
+
+// ---------- LOAD WORDS ----------
+fetch("data/words.json")
+  .then(res => res.json())
+  .then(data => {
+    WORDS = data;
+    populateThemes();
+  })
+  .catch(err => {
+    console.error("Error cargando words.json", err);
+  });
+
+function populateThemes() {
+  themeSelect.innerHTML = "";
+
+  Object.keys(WORDS).forEach(key => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+    themeSelect.appendChild(option);
+  });
+
+  // Opción personalizada
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  custom.textContent = "Personalizado";
+  themeSelect.appendChild(custom);
+}
+
+// ---------- EVENTS ----------
 btnStart.onclick = () => showScreen("config");
 
 themeSelect.onchange = () => {
@@ -59,8 +100,10 @@ btnConfigNext.onclick = () => {
   };
 
   startRound();
+  saveGame();
 };
 
+// ---------- GAME LOGIC ----------
 function startRound() {
   game.currentPlayer = 0;
 
@@ -72,6 +115,11 @@ function startRound() {
       .filter(Boolean);
   } else {
     words = WORDS[themeSelect.value];
+  }
+
+  if (!words || words.length === 0) {
+    alert("No hay palabras disponibles para este tema");
+    return;
   }
 
   const word = words[Math.floor(Math.random() * words.length)];
@@ -87,6 +135,7 @@ function startRound() {
   }
 
   game.roles = roles;
+  saveGame();
   showRoleScreen();
 }
 
@@ -113,11 +162,10 @@ btnShowRole.onclick = () => {
   roleOverlay.classList.remove("hidden");
 };
 
-
-
 btnNextPlayer.onclick = () => {
   roleOverlay.classList.add("hidden");
   game.currentPlayer++;
+  saveGame();
 
   if (game.currentPlayer >= game.players) {
     showEndOfRound();
@@ -139,9 +187,31 @@ function showEndOfRound() {
 
 btnNextRound.onclick = () => {
   game.currentRound++;
+  saveGame();
   startRound();
 };
 
-btnEndGame.onclick = () => showScreen("end");
+btnEndGame.onclick = () => {
+  clearGame();
+  showScreen("end");
+};
 
-btnRestart.onclick = () => showScreen("start");
+btnRestart.onclick = () => {
+  clearGame();
+  showScreen("start");
+};
+
+// ---------- RESTORE GAME ----------
+const savedGame = localStorage.getItem("impostor-game");
+
+if (savedGame) {
+  game = JSON.parse(savedGame);
+
+  if (game.currentPlayer < game.players) {
+    showRoleScreen();
+  } else if (game.currentRound <= game.totalRounds) {
+    showEndOfRound();
+  } else {
+    showScreen("end");
+  }
+}
