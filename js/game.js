@@ -21,6 +21,7 @@ const roundsInput = document.getElementById("rounds");
 const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
+const playerNamesContainer = document.getElementById("player-names");
 const themePreview = document.getElementById("theme-preview");
 
 const playerTitle = document.getElementById("player-title");
@@ -83,6 +84,7 @@ function applyTranslations() {
   }
 
   refreshDynamicText();
+  updatePlayerNamePlaceholders();
 }
 
 function refreshDynamicText() {
@@ -107,10 +109,28 @@ function updateRoleHeader() {
     return;
   }
 
-  playerTitle.textContent = formatText(t("playerTitle"), {
-    num: game.currentPlayer + 1,
-    total: game.players,
-  });
+  const rawName = game.playerNames && game.playerNames[game.currentPlayer];
+  const displayName = rawName ? rawName : "";
+
+  if (displayName) {
+    playerTitle.textContent = "";
+    const nameEl = document.createElement("span");
+    nameEl.className = "player-name";
+    nameEl.textContent = displayName;
+    const metaEl = document.createElement("span");
+    metaEl.className = "player-meta";
+    metaEl.textContent = formatText(t("playerTitle"), {
+      num: game.currentPlayer + 1,
+      total: game.players,
+    });
+    playerTitle.appendChild(nameEl);
+    playerTitle.appendChild(metaEl);
+  } else {
+    playerTitle.textContent = formatText(t("playerTitle"), {
+      num: game.currentPlayer + 1,
+      total: game.players,
+    });
+  }
   roundIndicator.textContent = formatText(t("roundIndicator"), {
     current: game.currentRound,
     total: game.totalRounds,
@@ -167,6 +187,59 @@ function saveGame() {
 
 function clearGame() {
   localStorage.removeItem("impostor-game");
+}
+
+const feedbackAudio = {
+  ctx: null,
+};
+
+function playTone(freq, duration, volume) {
+  let ctx = feedbackAudio.ctx;
+  if (!ctx) {
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      feedbackAudio.ctx = ctx;
+    } catch (err) {
+      return;
+    }
+  }
+
+  if (ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  gain.gain.value = volume;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration / 1000);
+  osc.start(now);
+  osc.stop(now + duration / 1000 + 0.02);
+}
+
+function triggerHaptic(duration) {
+  if (navigator.vibrate) {
+    navigator.vibrate(duration);
+  }
+}
+
+function triggerFeedback(type) {
+  if (type === "reveal") {
+    playTone(660, 120, 0.03);
+    triggerHaptic(80);
+  } else if (type === "next") {
+    playTone(520, 80, 0.025);
+    triggerHaptic(50);
+  } else if (type === "roundEnd") {
+    playTone(740, 140, 0.035);
+    triggerHaptic(90);
+  }
 }
 
 fetch("data/words.json")
@@ -238,6 +311,37 @@ function updateThemePreview() {
   themePreview.classList.remove("hidden");
 }
 
+function updatePlayerNamePlaceholders() {
+  if (!playerNamesContainer) {
+    return;
+  }
+
+  const inputs = playerNamesContainer.querySelectorAll("input");
+  inputs.forEach((input, index) => {
+    input.placeholder = formatText(t("playerLabel"), { num: index + 1 });
+  });
+}
+
+function syncPlayerNameInputs() {
+  if (!playerNamesContainer) {
+    return;
+  }
+
+  const count = parseInt(playersInput.value, 10);
+  const total = Number.isFinite(count) && count > 0 ? count : 0;
+  const existing = Array.from(playerNamesContainer.querySelectorAll("input")).map(input => input.value);
+
+  playerNamesContainer.innerHTML = "";
+
+  for (let i = 0; i < total; i++) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = existing[i] ? existing[i].trim() : "";
+    input.placeholder = formatText(t("playerLabel"), { num: i + 1 });
+    playerNamesContainer.appendChild(input);
+  }
+}
+
 if (btnLang) {
   btnLang.onclick = () => {
     setLanguage(currentLang === "es" ? "en" : "es");
@@ -245,6 +349,10 @@ if (btnLang) {
 }
 
 btnStart.onclick = () => showScreen("config");
+
+playersInput.oninput = () => {
+  syncPlayerNameInputs();
+};
 
 themeSelect.onchange = () => {
   customWordsContainer.classList.toggle(
@@ -315,6 +423,15 @@ btnConfigNext.onclick = () => {
     }
   }
 
+  const playerNames = [];
+  if (playerNamesContainer) {
+    const inputs = playerNamesContainer.querySelectorAll("input");
+    for (let i = 0; i < players; i++) {
+      const value = inputs[i] ? inputs[i].value.trim() : "";
+      playerNames.push(value);
+    }
+  }
+
   game = {
     players,
     impostors,
@@ -322,6 +439,7 @@ btnConfigNext.onclick = () => {
     currentRound: 1,
     roles: [],
     currentPlayer: 0,
+    playerNames,
   };
 
   startRound();
@@ -375,6 +493,7 @@ function showRoleScreen() {
 btnShowRole.onclick = () => {
   renderRoleText();
   roleOverlay.classList.remove("hidden");
+  triggerFeedback("reveal");
 };
 
 btnNextPlayer.onclick = () => {
@@ -383,8 +502,10 @@ btnNextPlayer.onclick = () => {
   saveGame();
 
   if (game.currentPlayer >= game.players) {
+    triggerFeedback("roundEnd");
     showEndOfRound();
   } else {
+    triggerFeedback("next");
     showRoleScreen();
   }
 };
@@ -416,7 +537,7 @@ btnRestart.onclick = () => {
 };
 
 applyTranslations();
-
+syncPlayerNameInputs();
 
 const savedGame = localStorage.getItem("impostor-game");
 

@@ -56,6 +56,24 @@ h1, h2 {
   text-align: center;
 }
 
+#player-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.player-name {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.player-meta {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 p {
   color: var(--muted);
   text-align: center;
@@ -66,6 +84,11 @@ label {
   margin: 1rem 0;
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+.player-names {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .theme-preview {

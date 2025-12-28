@@ -18,6 +18,8 @@ const I18N = {
     customWords: "Palabras personalizadas (una por línea)",
     customTheme: "Personalizado",
     previewLabel: "Ejemplo:",
+    playerNames: "Nombres de jugadores (opcional)",
+    playerLabel: "Jugador {num}",
     startGame: "Empezar",
 
     viewRole: "Ver mi rol",
@@ -31,6 +33,7 @@ const I18N = {
     impostor: "ERES EL IMPOSTOR",
     wordIs: "La palabra es:",
     playerTitle: "Jugador {num} / {total}",
+    playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Ronda {current} / {total}",
     roundEndTitle: "Fin de la ronda {round}",
     noWords: "No hay palabras disponibles para este tema"
@@ -55,6 +58,8 @@ const I18N = {
     customWords: "Custom words (one per line)",
     customTheme: "Custom",
     previewLabel: "Sample:",
+    playerNames: "Player names (optional)",
+    playerLabel: "Player {num}",
     startGame: "Start game",
 
     viewRole: "View my role",
@@ -68,6 +73,7 @@ const I18N = {
     impostor: "YOU ARE THE IMPOSTOR",
     wordIs: "The word is:",
     playerTitle: "Player {num} / {total}",
+    playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Round {current} / {total}",
     roundEndTitle: "End of round {round}",
     noWords: "No words available for this theme"
