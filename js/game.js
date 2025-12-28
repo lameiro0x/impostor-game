@@ -21,6 +21,7 @@ const roundsInput = document.getElementById("rounds");
 const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
+const themePreview = document.getElementById("theme-preview");
 
 const playerTitle = document.getElementById("player-title");
 const roundIndicator = document.getElementById("round-indicator");
@@ -100,13 +101,15 @@ function updateRoleHeader() {
   if (
     !Number.isFinite(game.currentPlayer) ||
     !Number.isFinite(game.currentRound) ||
-    !Number.isFinite(game.totalRounds)
+    !Number.isFinite(game.totalRounds) ||
+    !Number.isFinite(game.players)
   ) {
     return;
   }
 
   playerTitle.textContent = formatText(t("playerTitle"), {
     num: game.currentPlayer + 1,
+    total: game.players,
   });
   roundIndicator.textContent = formatText(t("roundIndicator"), {
     current: game.currentRound,
@@ -204,6 +207,35 @@ function populateThemes() {
     "hidden",
     themeSelect.value !== "custom"
   );
+
+  updateThemePreview();
+}
+
+function updateThemePreview() {
+  if (!themePreview || !WORDS || Object.keys(WORDS).length === 0) {
+    return;
+  }
+
+  if (themeSelect.value === "custom") {
+    themePreview.classList.add("hidden");
+    themePreview.textContent = "";
+    return;
+  }
+
+  const theme = WORDS[themeSelect.value];
+  const words = theme && theme.words
+    ? theme.words[currentLang] || theme.words.es || theme.words.en
+    : [];
+
+  if (!words || words.length === 0) {
+    themePreview.classList.add("hidden");
+    themePreview.textContent = "";
+    return;
+  }
+
+  const sample = words.slice(0, 3).join(", ");
+  themePreview.textContent = `${t("previewLabel")} ${sample}`;
+  themePreview.classList.remove("hidden");
 }
 
 if (btnLang) {
@@ -219,6 +251,7 @@ themeSelect.onchange = () => {
     "hidden",
     themeSelect.value !== "custom"
   );
+  updateThemePreview();
 };
 
 btnConfigNext.onclick = () => {
