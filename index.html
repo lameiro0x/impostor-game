@@ -171,7 +171,16 @@
 </section>
 
 <script src="js/i18n.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script>
+  (function() {
+    var host = window.location.hostname;
+    var isLocal = host === "localhost" || host === "127.0.0.1";
+    var src = isLocal
+      ? "/socket.io/socket.io.js"
+      : "https://impostor-game-b7vg.onrender.com/socket.io/socket.io.js";
+    document.write('<script src="' + src + '"><\\/script>');
+  })();
+</script>
 <script src="js/game.js"></script>
 </body>
 </html>
