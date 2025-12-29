@@ -649,6 +649,16 @@ function attemptAutoReconnect() {
   });
 }
 
+function getSocketBaseUrl() {
+  const { hostname, port } = window.location;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  if (isLocalhost) {
+    const portSegment = port ? `:${port}` : "";
+    return `http://${hostname}${portSegment}`;
+  }
+  return "https://impostor-game-b7vg.onrender.com";
+}
+
 function ensureSocket() {
   if (!window.io) {
     alert(t("onlineUnavailable"));
@@ -657,7 +667,7 @@ function ensureSocket() {
   if (socket) {
     return socket;
   }
-  socket = window.io();
+  socket = window.io(getSocketBaseUrl());
   socket.on("connect", () => {
     renderLobby();
   });
