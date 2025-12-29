@@ -26,6 +26,12 @@ const btnJoinRoom = document.getElementById("btn-join-room");
 const onlineLobby = document.getElementById("online-lobby");
 const roomStatus = document.getElementById("room-status");
 const playerList = document.getElementById("player-list");
+const onlineSettings = document.getElementById("online-settings");
+const onlineImpostorsInput = document.getElementById("online-impostors");
+const onlineRoundsInput = document.getElementById("online-rounds");
+const onlineThemeSelect = document.getElementById("online-theme");
+const btnStartOnline = document.getElementById("btn-start-online");
+const roomNote = document.getElementById("room-note");
 
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
@@ -313,6 +319,23 @@ function populateThemes() {
   );
 
   updateThemePreview();
+
+  if (onlineThemeSelect) {
+    const currentOnlineValue = onlineThemeSelect.value;
+    onlineThemeSelect.innerHTML = "";
+    Object.keys(WORDS).forEach(key => {
+      const option = document.createElement("option");
+      option.value = key;
+      option.textContent = WORDS[key][currentLang] || WORDS[key].es || WORDS[key].en || key;
+      onlineThemeSelect.appendChild(option);
+    });
+    if (currentOnlineValue && WORDS[currentOnlineValue]) {
+      onlineThemeSelect.value = currentOnlineValue;
+    }
+    if (!onlineThemeSelect.value && Object.keys(WORDS).length > 0) {
+      onlineThemeSelect.value = Object.keys(WORDS)[0];
+    }
+  }
 }
 
 function updateThemePreview() {
@@ -349,6 +372,16 @@ function clearLobby() {
   roomStatus.textContent = "";
   playerList.innerHTML = "";
   onlineLobby.classList.add("hidden");
+  if (btnStartOnline) {
+    btnStartOnline.classList.add("hidden");
+  }
+  if (onlineSettings) {
+    onlineSettings.classList.add("hidden");
+  }
+  if (roomNote) {
+    roomNote.textContent = "";
+    roomNote.classList.add("hidden");
+  }
 }
 
 function renderLobby() {
@@ -358,17 +391,37 @@ function renderLobby() {
   if (!Array.isArray(roomState.players)) {
     return;
   }
+  const isHost = socket && roomState.hostId === socket.id;
+  const gameStarted = roomState.game && roomState.game.started;
   roomStatus.textContent = formatText(t("roomLabel"), { code: roomState.code });
   playerList.innerHTML = "";
   roomState.players.forEach(player => {
     const li = document.createElement("li");
-    const isHost = player.id === roomState.hostId;
-    li.textContent = `${player.name}${isHost ? ` (${t("hostTag")})` : ""}`;
-    if (isHost) {
+    const isHostPlayer = player.id === roomState.hostId;
+    li.textContent = `${player.name}${isHostPlayer ? ` (${t("hostTag")})` : ""}`;
+    if (isHostPlayer) {
       li.classList.add("host");
     }
     playerList.appendChild(li);
   });
+  if (btnStartOnline) {
+    btnStartOnline.classList.toggle("hidden", !isHost || gameStarted);
+  }
+  if (onlineSettings) {
+    onlineSettings.classList.toggle("hidden", !isHost || gameStarted);
+  }
+  if (roomNote) {
+    if (gameStarted) {
+      roomNote.textContent = t("waitingForRole");
+      roomNote.classList.remove("hidden");
+    } else if (!isHost) {
+      roomNote.textContent = t("waitingForHost");
+      roomNote.classList.remove("hidden");
+    } else {
+      roomNote.textContent = "";
+      roomNote.classList.add("hidden");
+    }
+  }
   onlineLobby.classList.remove("hidden");
 }
 
@@ -409,9 +462,45 @@ function ensureSocket() {
     return socket;
   }
   socket = window.io();
+  socket.on("connect", () => {
+    renderLobby();
+  });
   socket.on("room_update", payload => {
     roomState = payload;
     renderLobby();
+  });
+  socket.on("game_started", payload => {
+    if (payload && payload.code && Array.isArray(payload.players)) {
+      roomState = {
+        code: payload.code,
+        hostId: payload.hostId,
+        players: payload.players,
+        game: payload.game || null,
+      };
+      renderLobby();
+    }
+  });
+  socket.on("private_role", payload => {
+    if (!payload || !roomState || !Array.isArray(roomState.players)) {
+      return;
+    }
+    const playerIndex = Number.isFinite(payload.playerIndex)
+      ? payload.playerIndex
+      : roomState.players.findIndex(player => player.id === socket.id);
+    const safeIndex = playerIndex >= 0 ? playerIndex : 0;
+    const players = roomState.players;
+    const gameState = roomState.game || {};
+    game = {
+      players: players.length,
+      impostors: gameState.impostors || 1,
+      totalRounds: gameState.totalRounds || 1,
+      currentRound: gameState.currentRound || 1,
+      roles: Array(players.length).fill(null),
+      currentPlayer: safeIndex,
+      playerNames: players.map(player => player.name),
+    };
+    game.roles[safeIndex] = payload.role;
+    showRoleScreen();
   });
   socket.on("room_closed", () => {
     roomState = null;
@@ -534,6 +623,70 @@ if (btnJoinRoom) {
       roomState = response.room;
       renderLobby();
     });
+  };
+}
+
+if (btnStartOnline) {
+  btnStartOnline.onclick = () => {
+    if (!roomState || !socket) {
+      return;
+    }
+    if (roomState.hostId !== socket.id) {
+      alert(t("notHost"));
+      return;
+    }
+    const playersCount = Array.isArray(roomState.players) ? roomState.players.length : 0;
+    const impostors = parseInt(onlineImpostorsInput ? onlineImpostorsInput.value : "", 10);
+    const totalRounds = parseInt(onlineRoundsInput ? onlineRoundsInput.value : "", 10);
+    const theme = onlineThemeSelect ? onlineThemeSelect.value : "";
+    const messages = currentLang === "en"
+      ? {
+        playersMin: "Players must be at least 3.",
+        impostorsMin: "There must be at least 1 impostor.",
+        impostorsMax: "Impostors must be fewer than players.",
+        roundsMin: "Rounds must be at least 1.",
+      }
+      : {
+        playersMin: "Debe haber al menos 3 jugadores.",
+        impostorsMin: "Debe haber al menos 1 impostor.",
+        impostorsMax: "Los impostores deben ser menos que los jugadores.",
+        roundsMin: "Debe haber al menos 1 ronda.",
+      };
+
+    if (playersCount < 3) {
+      alert(messages.playersMin);
+      return;
+    }
+    if (!Number.isFinite(impostors) || impostors < 1) {
+      alert(messages.impostorsMin);
+      return;
+    }
+    if (impostors >= playersCount) {
+      alert(messages.impostorsMax);
+      return;
+    }
+    if (!Number.isFinite(totalRounds) || totalRounds < 1) {
+      alert(messages.roundsMin);
+      return;
+    }
+    if (!theme || !WORDS[theme]) {
+      alert(t("onlineError"));
+      return;
+    }
+
+    socket.timeout(4000).emit(
+      "start_game",
+      { impostors, totalRounds, theme, lang: currentLang },
+      (err, response) => {
+        if (err || !response || !response.ok) {
+          if (response && response.error === "not_host") {
+            alert(t("notHost"));
+          } else {
+            alert(t("onlineError"));
+          }
+        }
+      }
+    );
   };
 }
 
@@ -709,6 +862,10 @@ btnShowRole.onclick = () => {
 };
 
 btnNextPlayer.onclick = () => {
+  if (onlineMode === "online" && roomState && roomState.game && roomState.game.started) {
+    roleOverlay.classList.add("hidden");
+    return;
+  }
   roleOverlay.classList.add("hidden");
   game.currentPlayer++;
   saveGame();

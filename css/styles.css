@@ -316,6 +316,15 @@ button:active {
   text-align: left;
 }
 
+.online-settings {
+  margin-top: 0.4rem;
+  width: 100%;
+}
+
+.online-settings label {
+  margin: 0.7rem 0;
+}
+
 .online-lobby {
   margin-top: 0.8rem;
   padding-top: 0.8rem;
@@ -328,6 +337,17 @@ button:active {
   color: var(--muted);
   text-align: left;
   font-size: 0.85rem;
+}
+
+.room-note {
+  margin: 0 0 0.6rem 0;
+  color: var(--muted);
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+#btn-start-online {
+  margin-top: 0.4rem;
 }
 
 .player-list {

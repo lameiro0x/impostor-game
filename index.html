@@ -50,8 +50,27 @@
 
       <button id="btn-join-room" type="button" data-i18n="joinRoom">Unirse a sala</button>
 
+      <div id="online-settings" class="online-settings hidden">
+        <label>
+          <span data-i18n="impostors">Impostores</span>
+          <input type="number" id="online-impostors" min="1" value="1">
+        </label>
+
+        <label>
+          <span data-i18n="rounds">Rondas</span>
+          <input type="number" id="online-rounds" min="1" value="3">
+        </label>
+
+        <label>
+          <span data-i18n="theme">Tema</span>
+          <select id="online-theme"></select>
+        </label>
+      </div>
+
       <div id="online-lobby" class="online-lobby hidden">
         <p id="room-status" class="room-status"></p>
+        <p id="room-note" class="room-note hidden"></p>
+        <button id="btn-start-online" class="hidden" type="button" data-i18n="startOnline">Iniciar partida online</button>
         <ul id="player-list" class="player-list"></ul>
       </div>
     </div>
