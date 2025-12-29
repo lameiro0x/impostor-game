@@ -15,6 +15,17 @@ const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 const btnRestartSame = document.getElementById("btn-restart-same");
 const btnLang = document.getElementById("btn-lang");
+const modeOfflineBtn = document.getElementById("mode-offline");
+const modeOnlineBtn = document.getElementById("mode-online");
+const offlinePanel = document.getElementById("offline-panel");
+const onlinePanel = document.getElementById("online-panel");
+const onlineNameInput = document.getElementById("online-name");
+const onlineCodeInput = document.getElementById("online-code");
+const btnCreateRoom = document.getElementById("btn-create-room");
+const btnJoinRoom = document.getElementById("btn-join-room");
+const onlineLobby = document.getElementById("online-lobby");
+const roomStatus = document.getElementById("room-status");
+const playerList = document.getElementById("player-list");
 
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
@@ -35,6 +46,9 @@ let WORDS = {};
 
 let game = {};
 let lastConfig = null;
+let onlineMode = "offline";
+let socket = null;
+let roomState = null;
 
 const LANG_KEY = "impostor-lang";
 const SUPPORTED_LANGS = ["es", "en"];
@@ -87,6 +101,7 @@ function applyTranslations() {
 
   refreshDynamicText();
   updatePlayerNamePlaceholders();
+  renderLobby();
 }
 
 function refreshDynamicText() {
@@ -327,6 +342,84 @@ function updateThemePreview() {
   themePreview.classList.remove("hidden");
 }
 
+function clearLobby() {
+  if (!onlineLobby || !roomStatus || !playerList) {
+    return;
+  }
+  roomStatus.textContent = "";
+  playerList.innerHTML = "";
+  onlineLobby.classList.add("hidden");
+}
+
+function renderLobby() {
+  if (!onlineLobby || !roomStatus || !playerList || !roomState) {
+    return;
+  }
+  if (!Array.isArray(roomState.players)) {
+    return;
+  }
+  roomStatus.textContent = formatText(t("roomLabel"), { code: roomState.code });
+  playerList.innerHTML = "";
+  roomState.players.forEach(player => {
+    const li = document.createElement("li");
+    const isHost = player.id === roomState.hostId;
+    li.textContent = `${player.name}${isHost ? ` (${t("hostTag")})` : ""}`;
+    if (isHost) {
+      li.classList.add("host");
+    }
+    playerList.appendChild(li);
+  });
+  onlineLobby.classList.remove("hidden");
+}
+
+function resetOnlineState() {
+  roomState = null;
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  clearLobby();
+}
+
+function setMode(mode) {
+  onlineMode = mode;
+  if (modeOfflineBtn) {
+    modeOfflineBtn.classList.toggle("active", mode === "offline");
+  }
+  if (modeOnlineBtn) {
+    modeOnlineBtn.classList.toggle("active", mode === "online");
+  }
+  if (offlinePanel) {
+    offlinePanel.classList.toggle("hidden", mode === "online");
+  }
+  if (onlinePanel) {
+    onlinePanel.classList.toggle("hidden", mode !== "online");
+  }
+  if (mode === "offline") {
+    resetOnlineState();
+  }
+}
+
+function ensureSocket() {
+  if (!window.io) {
+    alert(t("onlineUnavailable"));
+    return null;
+  }
+  if (socket) {
+    return socket;
+  }
+  socket = window.io();
+  socket.on("room_update", payload => {
+    roomState = payload;
+    renderLobby();
+  });
+  socket.on("room_closed", () => {
+    roomState = null;
+    clearLobby();
+  });
+  return socket;
+}
+
 function updatePlayerNamePlaceholders() {
   if (!playerNamesContainer) {
     return;
@@ -361,6 +454,86 @@ function syncPlayerNameInputs() {
 if (btnLang) {
   btnLang.onclick = () => {
     setLanguage(currentLang === "es" ? "en" : "es");
+  };
+}
+
+if (modeOfflineBtn) {
+  modeOfflineBtn.onclick = () => {
+    setMode("offline");
+  };
+}
+
+if (modeOnlineBtn) {
+  modeOnlineBtn.onclick = () => {
+    setMode("online");
+  };
+}
+
+if (btnCreateRoom) {
+  btnCreateRoom.onclick = () => {
+    const name = onlineNameInput ? onlineNameInput.value.trim() : "";
+    if (!name) {
+      alert(t("nameRequired"));
+      return;
+    }
+
+    const sock = ensureSocket();
+    if (!sock) {
+      return;
+    }
+
+    sock.timeout(4000).emit("create_room", { name }, (err, response) => {
+      if (err || !response || !response.ok) {
+        alert(t("onlineError"));
+        return;
+      }
+      roomState = response.room;
+      if (onlineCodeInput) {
+        onlineCodeInput.value = roomState.code;
+      }
+      renderLobby();
+    });
+  };
+}
+
+if (btnJoinRoom) {
+  btnJoinRoom.onclick = () => {
+    const name = onlineNameInput ? onlineNameInput.value.trim() : "";
+    if (!name) {
+      alert(t("nameRequired"));
+      return;
+    }
+    let code = onlineCodeInput ? onlineCodeInput.value.trim().toUpperCase() : "";
+    code = code.replace(/[^A-Z0-9]/g, "");
+    if (onlineCodeInput) {
+      onlineCodeInput.value = code;
+    }
+    if (!code) {
+      alert(t("codeRequired"));
+      return;
+    }
+
+    const sock = ensureSocket();
+    if (!sock) {
+      return;
+    }
+
+    sock.timeout(4000).emit("join_room", { name, code }, (err, response) => {
+      if (err || !response) {
+        alert(t("onlineError"));
+        return;
+      }
+      if (!response.ok) {
+        if (response.error === "not_found") {
+          alert(t("roomNotFound"));
+        } else {
+          alert(t("onlineError"));
+        }
+        return;
+      }
+      roomState = response.room;
+      renderLobby();
+    });
   };
 }
 
@@ -615,6 +788,7 @@ if (btnRestartSame) {
 
 applyTranslations();
 syncPlayerNameInputs();
+setMode("offline");
 
 const savedGame = localStorage.getItem("impostor-game");
 
