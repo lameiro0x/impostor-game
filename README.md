@@ -1,31 +1,57 @@
-# Impostor Game – Vanilla JavaScript Web App
+# Impostor Game – Offline & Online Multiplayer (Vanilla JavaScript)
 
-A lightweight web application inspired by social deduction games, built entirely with **vanilla JavaScript**, focusing on **clean architecture, UX clarity, and internationalization (i18n)** without relying on external frameworks.
+A lightweight social deduction web application built entirely with **vanilla JavaScript**, designed with a strong focus on **clean architecture**, **clear UX**, **internationalization (i18n)**, and **explicit separation between offline and online flows**.
 
-The project is designed as a small but complete frontend application, demonstrating how to manage state, dynamic UI updates, and multilingual content in a simple and maintainable way.
+The project started as a single-device offline game and evolved into a **real-time online multiplayer application**, demonstrating how to build and deploy a small distributed system without frontend frameworks.
 
 ---
 
 ## Features
 
-- 🧠 Social deduction game logic (impostors vs players)
-- 🌍 Internationalization (Spanish / English)
+### Core Gameplay
+- 🧠 Social deduction mechanics (impostors vs players)
+- 🔁 Multiple configurable rounds
+- 👤 Custom player names
 - 🎯 Dynamic themes and word sets loaded from JSON
-- 💾 Game state persistence using `localStorage`
-- 👤 Custom player names support
-- 📊 Clear player and round progress indicators
+- ✍️ Custom word lists (offline and online)
+- 📊 Clear player and round indicators
+
+### Offline Mode
+- Designed for **pass-and-play** on a single device
+- Private role reveal per player
+- Full game flow with no network dependency
+
+### Online Multiplayer Mode
+- 🌐 Real-time multiplayer using **Socket.IO**
+- 🏠 Room-based system with join codes
+- 👑 Host-authoritative game flow
+- 🔒 Private role delivery per player
+- 🔁 Restart with same or new settings without recreating the room
+- 🔄 Basic reconnection support
+- ⏱️ Synchronized countdowns and round transitions
+
+### General
+- 🌍 Internationalization (Spanish / English)
+- 💾 Local state persistence using `localStorage`
 - 📱 Responsive, mobile-friendly UI
-- ⚙️ No frameworks, no dependencies (pure HTML, CSS, JS)
+- ⚙️ No frontend frameworks or build tools
 
 ---
 
 ## Play the Application
 
-The game is fully playable directly in the browser at:
-
 👉 **https://play.lameiro0x.com**
 
-No installation or setup is required.
+The game is fully playable directly in the browser, both offline and online.
+
+---
+
+## Architecture Overview
+
+- **Frontend**: Static HTML/CSS/JS served from GitHub Pages
+- **Backend**: Node.js + Socket.IO hosted on Render
+
+The backend manages rooms, players, and game state, while the frontend focuses on UI and interaction.
 
 ---
 
@@ -38,62 +64,40 @@ No installation or setup is required.
 │   └── styles.css
 ├── js/
 │   ├── game.js
-│   └── i18n.js
+│   └── i18n.js
 ├── data/
-│   └── words.json
+│   └── words.json
+├── server.js
+├── package.json
+├── package-lock.json
+├── node_modules/
 ├── favicon16.png
 ├── favicon32.png
 ├── apple-touch-icon.png
-└── CNAME
+├── CNAME
+└── README.md
 ```
 
 ---
 
-## Technical Overview
+## Local Development
 
-### Internationalization (i18n)
-- Language strings are defined in `js/i18n.js`
-- Game themes and word sets are language-aware via `data/words.json`
-- Language switching is handled at runtime without page reloads
-- Selected language is persisted using `localStorage`
-
-### Game Logic
-- Roles are assigned randomly per round
-- Supports multiple rounds and configurable number of impostors
-- Custom word lists can be provided by the user
-- Game progress is preserved across page refreshes
-
-### Design Decisions
-- **Vanilla JS only** to focus on fundamentals
-- Clear separation between UI, game logic, and data
-- Small scope, but fully finished and usable
-
----
-
-## UX Considerations
-
-The application is designed for real-world group usage, where a single device is passed between players.  
-Special care was taken to avoid accidental information leaks, reduce misclicks, and keep the game flow clear and predictable throughout the session.
-
----
-
-## Getting Started (Local Development)
-
-No build step required.
-
+### Frontend
 ```bash
-git clone https://github.com/lameiro0x/impostor-game.git
-cd impostor-game
 python3 -m http.server
 ```
 
-And yo can connect via your browser going to localhost.
+### Backend
+```bash
+npm install
+npm start
+```
 
 ---
 
 ## Motivation
 
-This project was built as a practical exercise to reinforce frontend fundamentals, state management in small applications, and internationalization without external libraries.
+This project was built to strengthen frontend fundamentals, state management, and real-time communication concepts using a clean and minimal approach.
 
 ---
 

@@ -15,6 +15,7 @@ const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 const btnRestartSame = document.getElementById("btn-restart-same");
 const btnLang = document.getElementById("btn-lang");
+const btnSwitchOnline = document.getElementById("btn-switch-online");
 const modeOfflineBtn = document.getElementById("mode-offline");
 const modeOnlineBtn = document.getElementById("mode-online");
 const offlinePanel = document.getElementById("offline-panel");
@@ -839,6 +840,14 @@ if (modeOfflineBtn) {
 if (modeOnlineBtn) {
   modeOnlineBtn.onclick = () => {
     setMode("online");
+  };
+}
+
+if (btnSwitchOnline) {
+  btnSwitchOnline.onclick = () => {
+    setMode("online");
+    showScreen("start");
+    renderLobby();
   };
 }
 
