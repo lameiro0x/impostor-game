@@ -30,6 +30,8 @@ const onlineSettings = document.getElementById("online-settings");
 const onlineImpostorsInput = document.getElementById("online-impostors");
 const onlineRoundsInput = document.getElementById("online-rounds");
 const onlineThemeSelect = document.getElementById("online-theme");
+const onlineCustomWordsInput = document.getElementById("online-custom-words");
+const onlineCustomWordsContainer = document.getElementById("online-custom-words-container");
 const btnStartOnline = document.getElementById("btn-start-online");
 const roomNote = document.getElementById("room-note");
 const btnRestartOnline = document.getElementById("btn-restart-online");
@@ -51,6 +53,7 @@ const roundIndicator = document.getElementById("round-indicator");
 const roleOverlay = document.getElementById("role-overlay");
 const roleText = document.getElementById("role-text");
 const roundTitle = document.getElementById("round-title");
+const countdownLabel = document.getElementById("countdown-label");
 const roundCountdown = document.getElementById("round-countdown");
 const countdownNumber = document.getElementById("countdown-number");
 
@@ -210,9 +213,12 @@ function updateRoleConfirmButton() {
   btnNextPlayer.textContent = onlineActive ? t("roleConfirm") : t("nextPlayer");
 }
 
-function showRoundCountdown(seconds) {
+function showRoundCountdown(seconds, labelKey = "roundCountdown") {
   if (!roundCountdown || !countdownNumber) {
     return;
+  }
+  if (countdownLabel) {
+    countdownLabel.textContent = t(labelKey);
   }
   const total = Number.isFinite(seconds) && seconds > 0 ? seconds : 3;
   let remaining = total;
@@ -280,6 +286,9 @@ function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
   screens[name].classList.remove("hidden");
   updateLanguageToggleState(name);
+  if (name === "end") {
+    updateEndScreenButtons();
+  }
 }
 
 function saveGame() {
@@ -387,18 +396,26 @@ function populateThemes() {
   if (onlineThemeSelect) {
     const currentOnlineValue = onlineThemeSelect.value;
     onlineThemeSelect.innerHTML = "";
-    Object.keys(WORDS).forEach(key => {
+    const themeKeys = Object.keys(WORDS);
+    themeKeys.forEach(key => {
       const option = document.createElement("option");
       option.value = key;
       option.textContent = WORDS[key][currentLang] || WORDS[key].es || WORDS[key].en || key;
       onlineThemeSelect.appendChild(option);
     });
-    if (currentOnlineValue && WORDS[currentOnlineValue]) {
+    const customOption = document.createElement("option");
+    customOption.value = "custom";
+    customOption.textContent = t("customTheme");
+    onlineThemeSelect.appendChild(customOption);
+
+    if (currentOnlineValue && (currentOnlineValue === "custom" || WORDS[currentOnlineValue])) {
       onlineThemeSelect.value = currentOnlineValue;
+    } else if (themeKeys.length > 0) {
+      onlineThemeSelect.value = themeKeys[0];
+    } else {
+      onlineThemeSelect.value = "custom";
     }
-    if (!onlineThemeSelect.value && Object.keys(WORDS).length > 0) {
-      onlineThemeSelect.value = Object.keys(WORDS)[0];
-    }
+    updateOnlineCustomWordsVisibility();
   }
 }
 
@@ -427,6 +444,14 @@ function updateThemePreview() {
   const sample = words.slice(0, 3).join(", ");
   themePreview.textContent = `${t("previewLabel")} ${sample}`;
   themePreview.classList.remove("hidden");
+}
+
+function updateOnlineCustomWordsVisibility() {
+  if (!onlineCustomWordsContainer || !onlineThemeSelect) {
+    return;
+  }
+  const showCustom = onlineThemeSelect.value === "custom";
+  onlineCustomWordsContainer.classList.toggle("hidden", !showCustom);
 }
 
 function storeOnlineIdentity(name, code) {
@@ -470,6 +495,20 @@ function updateOnlineHostControls() {
   if (btnOnlineEndGame) {
     btnOnlineEndGame.classList.toggle("hidden", !isOnlineHost() || !gameActive);
   }
+}
+
+function updateEndScreenButtons() {
+  if (!btnRestart || !btnRestartSame) {
+    return;
+  }
+  if (onlineMode !== "online") {
+    btnRestart.classList.remove("hidden");
+    btnRestartSame.classList.remove("hidden");
+    return;
+  }
+  const show = isOnlineHost();
+  btnRestart.classList.toggle("hidden", !show);
+  btnRestartSame.classList.toggle("hidden", !show);
 }
 
 function clearLobby() {
@@ -520,7 +559,7 @@ function renderLobby() {
     btnStartOnline.classList.toggle("hidden", !canConfigure);
   }
   if (btnRestartOnline) {
-    btnRestartOnline.classList.toggle("hidden", !isHost || !gameFinished);
+    btnRestartOnline.classList.add("hidden");
   }
   if (onlineSettings) {
     onlineSettings.classList.toggle("hidden", !canConfigure);
@@ -544,6 +583,8 @@ function renderLobby() {
   updateOnlineHostControls();
   updateLanguageToggleState(getActiveScreenName());
   updateRoleConfirmButton();
+  updateOnlineCustomWordsVisibility();
+  updateEndScreenButtons();
 }
 
 function resetOnlineState() {
@@ -632,8 +673,16 @@ function ensureSocket() {
         players: payload.players,
         game: payload.game || null,
       };
+      hideRoundCountdown();
       renderLobby();
     }
+  });
+  socket.on("game_start_countdown", payload => {
+    if (onlineMode !== "online") {
+      return;
+    }
+    const seconds = payload && Number.isFinite(payload.seconds) ? payload.seconds : 3;
+    showRoundCountdown(seconds, "gameCountdown");
   });
   socket.on("round_countdown", payload => {
     if (onlineMode !== "online") {
@@ -680,8 +729,8 @@ function ensureSocket() {
     }
     hideRoundCountdown();
     roleOverlay.classList.add("hidden");
-    showScreen("start");
     setMode("online");
+    showScreen("end");
     renderLobby();
   });
   socket.on("private_role", payload => {
@@ -855,12 +904,14 @@ if (btnStartOnline) {
         impostorsMin: "There must be at least 1 impostor.",
         impostorsMax: "Impostors must be fewer than players.",
         roundsMin: "Rounds must be at least 1.",
+        customWordsMin: "Add at least 3 distinct custom words.",
       }
       : {
         playersMin: "Debe haber al menos 3 jugadores.",
         impostorsMin: "Debe haber al menos 1 impostor.",
         impostorsMax: "Los impostores deben ser menos que los jugadores.",
         roundsMin: "Debe haber al menos 1 ronda.",
+        customWordsMin: "Añade al menos 3 palabras personalizadas distintas.",
       };
 
     if (playersCount < 3) {
@@ -879,14 +930,40 @@ if (btnStartOnline) {
       alert(messages.roundsMin);
       return;
     }
-    if (!theme || !WORDS[theme]) {
+    if (!theme || (theme !== "custom" && !WORDS[theme])) {
       alert(t("onlineError"));
+      return;
+    }
+    const isCustomTheme = theme === "custom";
+    let customWords = [];
+    if (isCustomTheme && onlineCustomWordsInput) {
+      const seen = new Set();
+      customWords = onlineCustomWordsInput.value
+        .split("\n")
+        .map(word => word.trim())
+        .filter(word => {
+          if (!word || seen.has(word)) {
+            return false;
+          }
+          seen.add(word);
+          return true;
+        });
+      onlineCustomWordsInput.value = customWords.join("\n");
+    }
+    if (isCustomTheme && customWords.length < 3) {
+      alert(messages.customWordsMin);
       return;
     }
 
     socket.timeout(4000).emit(
       "start_game",
-      { impostors, totalRounds, theme, lang: currentLang },
+      {
+        impostors,
+        totalRounds,
+        theme,
+        lang: currentLang,
+        customWords: isCustomTheme ? customWords : [],
+      },
       (err, response) => {
         if (err || !response || !response.ok) {
           if (response && response.error === "not_host") {
@@ -930,6 +1007,9 @@ if (btnOnlineEndGame) {
       alert(t("notHost"));
       return;
     }
+    if (!confirm(t("endGameConfirm"))) {
+      return;
+    }
     socket.timeout(4000).emit("end_game", {}, (err, response) => {
       if (err || !response || !response.ok) {
         alert(t("onlineError"));
@@ -968,6 +1048,12 @@ themeSelect.onchange = () => {
   );
   updateThemePreview();
 };
+
+if (onlineThemeSelect) {
+  onlineThemeSelect.onchange = () => {
+    updateOnlineCustomWordsVisibility();
+  };
+}
 
 btnConfigNext.onclick = () => {
   const players = parseInt(playersInput.value, 10);
@@ -1176,12 +1262,38 @@ btnEndGame.onclick = () => {
 };
 
 btnRestart.onclick = () => {
+  if (onlineMode === "online") {
+    if (!isOnlineHost()) {
+      alert(t("notHost"));
+      return;
+    }
+    showScreen("start");
+    setMode("online");
+    renderLobby();
+    return;
+  }
   clearGame();
-  showScreen("start");
+  setMode("offline");
+  showScreen("config");
 };
 
 if (btnRestartSame) {
   btnRestartSame.onclick = () => {
+    if (onlineMode === "online") {
+      if (!socket || !roomState) {
+        return;
+      }
+      if (roomState.hostId !== socket.id) {
+        alert(t("notHost"));
+        return;
+      }
+      socket.timeout(4000).emit("restart_game", {}, (err, response) => {
+        if (err || !response || !response.ok) {
+          alert(t("onlineError"));
+        }
+      });
+      return;
+    }
     if (!lastConfig) {
       return;
     }

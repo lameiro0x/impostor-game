@@ -57,6 +57,7 @@ const I18N = {
     playerTitle: "Jugador {num} / {total}",
     playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Ronda {current} / {total}",
+    gameCountdown: "La partida comienza en...",
     roundCountdown: "Siguiente ronda en...",
     roundEndTitle: "Fin de la ronda {round}",
     noWords: "No hay palabras disponibles para este tema"
@@ -120,6 +121,7 @@ const I18N = {
     playerTitle: "Player {num} / {total}",
     playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Round {current} / {total}",
+    gameCountdown: "Game starting in...",
     roundCountdown: "Next round starts in...",
     roundEndTitle: "End of round {round}",
     noWords: "No words available for this theme"
