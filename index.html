@@ -26,7 +26,60 @@
       <li data-i18n="how3">Encuentra al impostor</li>
     </ul>
 
-    <button id="btn-start" data-i18n="play">Jugar</button>
+    <div class="mode-select">
+      <button id="mode-offline" class="mode-btn active" type="button" data-i18n="offlineMode">Modo offline</button>
+      <button id="mode-online" class="mode-btn" type="button" data-i18n="onlineMode">Modo online (experimental)</button>
+    </div>
+
+    <div id="offline-panel" class="mode-panel">
+      <button id="btn-start" data-i18n="play">Jugar</button>
+    </div>
+
+    <div id="online-panel" class="mode-panel hidden">
+      <label>
+        <span data-i18n="onlineName">Nombre</span>
+        <input type="text" id="online-name" autocomplete="nickname">
+      </label>
+
+      <button id="btn-create-room" type="button" data-i18n="createRoom">Crear sala</button>
+
+      <label>
+        <span data-i18n="roomCode">Código de sala</span>
+        <input type="text" id="online-code" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </label>
+
+      <button id="btn-join-room" type="button" data-i18n="joinRoom">Unirse a sala</button>
+
+      <div id="online-settings" class="online-settings hidden">
+        <label>
+          <span data-i18n="impostors">Impostores</span>
+          <input type="number" id="online-impostors" min="1" value="1">
+        </label>
+
+        <label>
+          <span data-i18n="rounds">Rondas</span>
+          <input type="number" id="online-rounds" min="1" value="3">
+        </label>
+
+        <label>
+          <span data-i18n="theme">Tema</span>
+          <select id="online-theme"></select>
+        </label>
+
+        <label id="online-custom-words-container" class="hidden">
+          <span data-i18n="customWords">Palabras personalizadas (una por línea)</span>
+          <textarea id="online-custom-words"></textarea>
+        </label>
+      </div>
+
+      <div id="online-lobby" class="online-lobby hidden">
+        <p id="room-status" class="room-status"></p>
+        <p id="room-note" class="room-note hidden"></p>
+        <button id="btn-start-online" class="hidden" type="button" data-i18n="startOnline">Iniciar partida online</button>
+        <button id="btn-restart-online" class="hidden" type="button" data-i18n="restartOnline">Reiniciar partida online</button>
+        <ul id="player-list" class="player-list"></ul>
+      </div>
+    </div>
   </div>
 
   <footer class="footer">
@@ -85,12 +138,23 @@
   <h2 id="player-title"></h2>
   <p id="round-indicator"></p>
   <button id="btn-show-role" data-i18n="viewRole">Ver mi rol</button>
+  <div id="online-host-controls" class="online-host-controls hidden">
+    <button id="btn-online-next-round" type="button" data-i18n="nextRound">Siguiente ronda</button>
+    <button id="btn-online-end-game" type="button" data-i18n="endGame">Terminar partida</button>
+  </div>
 </section>
 
 <div id="role-overlay" class="hidden">
   <div class="role-card">
     <p id="role-text"></p>
     <button id="btn-next-player" data-i18n="nextPlayer">Siguiente jugador</button>
+  </div>
+</div>
+
+<div id="round-countdown" class="hidden">
+  <div class="countdown-card">
+    <p id="countdown-label" data-i18n="roundCountdown">Siguiente ronda en...</p>
+    <div id="countdown-number">3</div>
   </div>
 </div>
 
@@ -107,6 +171,7 @@
 </section>
 
 <script src="js/i18n.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
