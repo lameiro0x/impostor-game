@@ -71,6 +71,7 @@
         <p id="room-status" class="room-status"></p>
         <p id="room-note" class="room-note hidden"></p>
         <button id="btn-start-online" class="hidden" type="button" data-i18n="startOnline">Iniciar partida online</button>
+        <button id="btn-restart-online" class="hidden" type="button" data-i18n="restartOnline">Reiniciar partida online</button>
         <ul id="player-list" class="player-list"></ul>
       </div>
     </div>
@@ -132,6 +133,10 @@
   <h2 id="player-title"></h2>
   <p id="round-indicator"></p>
   <button id="btn-show-role" data-i18n="viewRole">Ver mi rol</button>
+  <div id="online-host-controls" class="online-host-controls hidden">
+    <button id="btn-online-next-round" type="button" data-i18n="nextRound">Siguiente ronda</button>
+    <button id="btn-online-end-game" type="button" data-i18n="endGame">Terminar partida</button>
+  </div>
 </section>
 
 <div id="role-overlay" class="hidden">

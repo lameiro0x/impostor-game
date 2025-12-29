@@ -350,6 +350,19 @@ button:active {
   margin-top: 0.4rem;
 }
 
+#btn-restart-online {
+  margin-top: 0.4rem;
+}
+
+.online-host-controls {
+  width: 100%;
+  margin-top: 0.8rem;
+}
+
+.online-host-controls button {
+  margin-top: 0.6rem;
+}
+
 .player-list {
   list-style: none;
   padding: 0;
