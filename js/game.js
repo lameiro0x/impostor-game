@@ -51,6 +51,8 @@ const roundIndicator = document.getElementById("round-indicator");
 const roleOverlay = document.getElementById("role-overlay");
 const roleText = document.getElementById("role-text");
 const roundTitle = document.getElementById("round-title");
+const roundCountdown = document.getElementById("round-countdown");
+const countdownNumber = document.getElementById("countdown-number");
 
 let WORDS = {};
 
@@ -59,6 +61,7 @@ let lastConfig = null;
 let onlineMode = "offline";
 let socket = null;
 let roomState = null;
+let countdownInterval = null;
 
 const ONLINE_NAME_KEY = "impostor-online-name";
 const ONLINE_CODE_KEY = "impostor-online-code";
@@ -115,6 +118,7 @@ function applyTranslations() {
   refreshDynamicText();
   updatePlayerNamePlaceholders();
   renderLobby();
+  updateRoleConfirmButton();
 }
 
 function refreshDynamicText() {
@@ -191,6 +195,51 @@ function renderRoleText() {
     roleText.innerHTML = `${t("wordIs")} <span class="word-highlight">
       ${game.roles[game.currentPlayer]}
     </span>`;
+  }
+}
+
+function updateRoleConfirmButton() {
+  if (!btnNextPlayer) {
+    return;
+  }
+  const onlineActive = onlineMode === "online"
+    && roomState
+    && roomState.game
+    && roomState.game.started
+    && !roomState.game.finished;
+  btnNextPlayer.textContent = onlineActive ? t("roleConfirm") : t("nextPlayer");
+}
+
+function showRoundCountdown(seconds) {
+  if (!roundCountdown || !countdownNumber) {
+    return;
+  }
+  const total = Number.isFinite(seconds) && seconds > 0 ? seconds : 3;
+  let remaining = total;
+  roundCountdown.classList.remove("hidden");
+  countdownNumber.textContent = remaining;
+  roleOverlay.classList.add("hidden");
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+  countdownInterval = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      return;
+    }
+    countdownNumber.textContent = remaining;
+  }, 1000);
+}
+
+function hideRoundCountdown() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  if (roundCountdown) {
+    roundCountdown.classList.add("hidden");
   }
 }
 
@@ -408,8 +457,19 @@ function updateOnlineHostControls() {
   if (!onlineHostControls) {
     return;
   }
-  const gameActive = roomState && roomState.game && roomState.game.started && !roomState.game.finished;
+  const gameState = roomState && roomState.game;
+  const gameActive = gameState && gameState.started && !gameState.finished;
+  const canAdvance = gameState
+    && Number.isFinite(gameState.currentRound)
+    && Number.isFinite(gameState.totalRounds)
+    && gameState.currentRound < gameState.totalRounds;
   onlineHostControls.classList.toggle("hidden", !isOnlineHost() || !gameActive);
+  if (btnOnlineNextRound) {
+    btnOnlineNextRound.classList.toggle("hidden", !isOnlineHost() || !gameActive || !canAdvance);
+  }
+  if (btnOnlineEndGame) {
+    btnOnlineEndGame.classList.toggle("hidden", !isOnlineHost() || !gameActive);
+  }
 }
 
 function clearLobby() {
@@ -455,14 +515,15 @@ function renderLobby() {
     }
     playerList.appendChild(li);
   });
+  const canConfigure = isHost && !gameStarted;
   if (btnStartOnline) {
-    btnStartOnline.classList.toggle("hidden", !isHost || gameStarted || gameFinished);
+    btnStartOnline.classList.toggle("hidden", !canConfigure);
   }
   if (btnRestartOnline) {
     btnRestartOnline.classList.toggle("hidden", !isHost || !gameFinished);
   }
   if (onlineSettings) {
-    onlineSettings.classList.toggle("hidden", !isHost || gameStarted || gameFinished);
+    onlineSettings.classList.toggle("hidden", !canConfigure);
   }
   if (roomNote) {
     if (gameFinished) {
@@ -482,6 +543,7 @@ function renderLobby() {
   onlineLobby.classList.remove("hidden");
   updateOnlineHostControls();
   updateLanguageToggleState(getActiveScreenName());
+  updateRoleConfirmButton();
 }
 
 function resetOnlineState() {
@@ -491,6 +553,7 @@ function resetOnlineState() {
     socket = null;
   }
   clearLobby();
+  hideRoundCountdown();
   if (onlineHostControls) {
     onlineHostControls.classList.add("hidden");
   }
@@ -539,6 +602,7 @@ function attemptAutoReconnect() {
     }
     roomState = response.room;
     roleOverlay.classList.add("hidden");
+    hideRoundCountdown();
     showScreen("start");
     renderLobby();
   });
@@ -571,6 +635,13 @@ function ensureSocket() {
       renderLobby();
     }
   });
+  socket.on("round_countdown", payload => {
+    if (onlineMode !== "online") {
+      return;
+    }
+    const seconds = payload && Number.isFinite(payload.seconds) ? payload.seconds : 3;
+    showRoundCountdown(seconds);
+  });
   socket.on("round_started", payload => {
     if (!roomState) {
       return;
@@ -581,6 +652,7 @@ function ensureSocket() {
       players: payload.players || roomState.players,
       game: payload.game || roomState.game,
     };
+    hideRoundCountdown();
     roleOverlay.classList.add("hidden");
     renderLobby();
   });
@@ -592,6 +664,7 @@ function ensureSocket() {
         players: payload.players,
         game: payload.game || null,
       };
+      hideRoundCountdown();
       roleOverlay.classList.add("hidden");
       renderLobby();
     }
@@ -605,6 +678,7 @@ function ensureSocket() {
         game: payload.game || null,
       };
     }
+    hideRoundCountdown();
     roleOverlay.classList.add("hidden");
     showScreen("start");
     setMode("online");
@@ -614,6 +688,7 @@ function ensureSocket() {
     if (!payload || !roomState || !Array.isArray(roomState.players)) {
       return;
     }
+    hideRoundCountdown();
     const playerIndex = Number.isFinite(payload.playerIndex)
       ? payload.playerIndex
       : roomState.players.findIndex(player => player.id === socket.id);
@@ -637,6 +712,7 @@ function ensureSocket() {
     roomState = null;
     clearLobby();
     clearOnlineIdentity();
+    hideRoundCountdown();
   });
   return socket;
 }
@@ -831,6 +907,10 @@ if (btnOnlineNextRound) {
     }
     if (roomState.hostId !== socket.id) {
       alert(t("notHost"));
+      return;
+    }
+    const gameState = roomState.game;
+    if (!gameState || gameState.currentRound >= gameState.totalRounds) {
       return;
     }
     socket.timeout(4000).emit("next_round", {}, (err, response) => {
@@ -1029,6 +1109,7 @@ function showRoleScreen() {
   updateRoleHeader();
   showScreen("role");
   updateOnlineHostControls();
+  updateRoleConfirmButton();
 }
 
 function triggerPlayerTransition() {
@@ -1042,6 +1123,7 @@ function triggerPlayerTransition() {
 }
 
 btnShowRole.onclick = () => {
+  updateRoleConfirmButton();
   renderRoleText();
   roleOverlay.classList.remove("hidden");
   triggerFeedback("reveal");
@@ -1077,6 +1159,9 @@ function showEndOfRound() {
 }
 
 btnNextRound.onclick = () => {
+  if (game.currentRound >= game.totalRounds) {
+    return;
+  }
   game.currentRound++;
   saveGame();
   startRound();

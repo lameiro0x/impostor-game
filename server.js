@@ -53,6 +53,7 @@ const io = new Server(server, {
 });
 
 const rooms = new Map();
+const ROUND_COUNTDOWN_SECONDS = 3;
 
 function generateCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -344,31 +345,58 @@ io.on("connection", socket => {
       return;
     }
 
-    room.game.currentRound += 1;
-    const assigned = assignRoles(room);
-    if (!assigned) {
-      reply({ ok: false, error: "invalid_theme" });
+    if (room.countdown) {
+      reply({ ok: false, error: "countdown" });
       return;
     }
 
-    const snapshot = roomSnapshot(room);
-    reply({ ok: true, room: snapshot });
-    io.to(code).emit("round_started", {
-      code: room.code,
-      hostId: room.hostId,
-      players: snapshot.players,
-      game: snapshot.game,
-    });
-    io.to(code).emit("room_update", snapshot);
-    assigned.playerIds.forEach((id, index) => {
-      io.to(id).emit("private_role", {
-        role: assigned.roles[index],
-        playerIndex: index,
-        round: room.game.currentRound,
-        totalRounds: room.game.totalRounds,
-        impostors: room.game.impostors,
+    const nextRound = room.game.currentRound + 1;
+    const countdownSeconds = ROUND_COUNTDOWN_SECONDS;
+    room.countdown = setTimeout(() => {
+      const activeRoom = rooms.get(code);
+      if (!activeRoom || !activeRoom.game || !activeRoom.game.started || activeRoom.game.finished) {
+        if (activeRoom) {
+          activeRoom.countdown = null;
+        }
+        return;
+      }
+      if (activeRoom.game.currentRound >= activeRoom.game.totalRounds) {
+        activeRoom.countdown = null;
+        return;
+      }
+
+      activeRoom.game.currentRound = nextRound;
+      const assigned = assignRoles(activeRoom);
+      if (!assigned) {
+        activeRoom.countdown = null;
+        return;
+      }
+
+      const snapshot = roomSnapshot(activeRoom);
+      io.to(code).emit("round_started", {
+        code: activeRoom.code,
+        hostId: activeRoom.hostId,
+        players: snapshot.players,
+        game: snapshot.game,
       });
+      io.to(code).emit("room_update", snapshot);
+      assigned.playerIds.forEach((id, index) => {
+        io.to(id).emit("private_role", {
+          role: assigned.roles[index],
+          playerIndex: index,
+          round: activeRoom.game.currentRound,
+          totalRounds: activeRoom.game.totalRounds,
+          impostors: activeRoom.game.impostors,
+        });
+      });
+      activeRoom.countdown = null;
+    }, countdownSeconds * 1000);
+
+    io.to(code).emit("round_countdown", {
+      seconds: countdownSeconds,
+      round: nextRound,
     });
+    reply({ ok: true });
   });
 
   socket.on("end_game", (payload = {}, cb) => {
@@ -387,6 +415,11 @@ io.on("connection", socket => {
     if (!room.game || !room.game.started) {
       reply({ ok: false, error: "not_started" });
       return;
+    }
+
+    if (room.countdown) {
+      clearTimeout(room.countdown);
+      room.countdown = null;
     }
 
     room.game.started = false;
@@ -426,6 +459,11 @@ io.on("connection", socket => {
     if (playerIds.length < 3 || room.game.impostors < 1 || room.game.impostors >= playerIds.length) {
       reply({ ok: false, error: "invalid_settings" });
       return;
+    }
+
+    if (room.countdown) {
+      clearTimeout(room.countdown);
+      room.countdown = null;
     }
 
     room.game.started = true;

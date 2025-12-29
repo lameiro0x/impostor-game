@@ -42,6 +42,7 @@ const I18N = {
     startGame: "Empezar",
 
     viewRole: "Ver mi rol",
+    roleConfirm: "OK",
     nextPlayer: "Siguiente jugador",
     nextRound: "Siguiente ronda",
     endGame: "Terminar partida",
@@ -56,6 +57,7 @@ const I18N = {
     playerTitle: "Jugador {num} / {total}",
     playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Ronda {current} / {total}",
+    roundCountdown: "Siguiente ronda en...",
     roundEndTitle: "Fin de la ronda {round}",
     noWords: "No hay palabras disponibles para este tema"
   },
@@ -103,6 +105,7 @@ const I18N = {
     startGame: "Start game",
 
     viewRole: "View my role",
+    roleConfirm: "Got it",
     nextPlayer: "Next player",
     nextRound: "Next round",
     endGame: "End game",
@@ -117,6 +120,7 @@ const I18N = {
     playerTitle: "Player {num} / {total}",
     playerTitleNamed: "{name} | {num} / {total}",
     roundIndicator: "Round {current} / {total}",
+    roundCountdown: "Next round starts in...",
     roundEndTitle: "End of round {round}",
     noWords: "No words available for this theme"
   }
