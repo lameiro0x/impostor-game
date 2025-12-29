@@ -65,6 +65,7 @@ let onlineMode = "offline";
 let socket = null;
 let roomState = null;
 let countdownInterval = null;
+let pendingAutoReconnect = false;
 
 const ONLINE_NAME_KEY = "impostor-online-name";
 const ONLINE_CODE_KEY = "impostor-online-code";
@@ -624,6 +625,20 @@ function attemptAutoReconnect() {
   if (!name || !code) {
     return;
   }
+  if (!window.io) {
+    if (window.__socketIoReady && !pendingAutoReconnect) {
+      pendingAutoReconnect = true;
+      window.__socketIoReady
+        .then(() => {
+          pendingAutoReconnect = false;
+          attemptAutoReconnect();
+        })
+        .catch(() => {
+          pendingAutoReconnect = false;
+        });
+    }
+    return;
+  }
   if (onlineNameInput) {
     onlineNameInput.value = name;
   }
@@ -661,7 +676,9 @@ function getSocketBaseUrl() {
 
 function ensureSocket() {
   if (!window.io) {
-    alert(t("onlineUnavailable"));
+    if (window.__socketIoFailed) {
+      alert(t("onlineUnavailable"));
+    }
     return null;
   }
   if (socket) {
