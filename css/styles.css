@@ -39,6 +39,10 @@ section {
   margin: auto;
 }
 
+#screen-role.player-transition {
+  animation: playerShift 0.35s ease;
+}
+
 @media (max-width: 480px) {
   section {
     padding: 1.5rem;
@@ -157,6 +161,17 @@ button:active {
   box-shadow: 0 8px 20px rgba(34,211,238,0.35);
 }
 
+#btn-lang:disabled,
+#btn-lang[aria-disabled="true"] {
+  background: #1f2937 !important;
+  color: #94a3b8 !important;
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: none;
+  border: 1px solid #334155;
+  filter: none;
+}
+
 #round-indicator {
   margin-bottom: 1rem;
   font-weight: 600;
@@ -201,6 +216,11 @@ button:active {
 @keyframes scaleIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes playerShift {
+  from { opacity: 0.75; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .role-impostor {

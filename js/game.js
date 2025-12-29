@@ -13,6 +13,7 @@ const btnNextPlayer = document.getElementById("btn-next-player");
 const btnNextRound = document.getElementById("btn-next-round");
 const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
+const btnRestartSame = document.getElementById("btn-restart-same");
 const btnLang = document.getElementById("btn-lang");
 
 const playersInput = document.getElementById("players");
@@ -33,6 +34,7 @@ const roundTitle = document.getElementById("round-title");
 let WORDS = {};
 
 let game = {};
+let lastConfig = null;
 
 const LANG_KEY = "impostor-lang";
 const SUPPORTED_LANGS = ["es", "en"];
@@ -176,9 +178,23 @@ function setLanguage(lang) {
   populateThemes();
 }
 
+function setLanguageToggleEnabled(enabled) {
+  if (!btnLang) {
+    return;
+  }
+  btnLang.disabled = !enabled;
+  btnLang.setAttribute("aria-disabled", (!enabled).toString());
+}
+
+function updateLanguageToggleState(screenName) {
+  const enabled = screenName === "start" || screenName === "config" || screenName === "end";
+  setLanguageToggleEnabled(enabled);
+}
+
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
   screens[name].classList.remove("hidden");
+  updateLanguageToggleState(name);
 }
 
 function saveGame() {
@@ -423,6 +439,8 @@ btnConfigNext.onclick = () => {
     }
   }
 
+  const themeValue = themeSelect.value;
+  const customWordsValue = themeValue === "custom" ? customWordsInput.value : "";
   const playerNames = [];
   if (playerNamesContainer) {
     const inputs = playerNamesContainer.querySelectorAll("input");
@@ -432,6 +450,15 @@ btnConfigNext.onclick = () => {
     }
   }
 
+  lastConfig = {
+    players,
+    impostors,
+    totalRounds,
+    theme: themeValue,
+    playerNames,
+    customWords: customWordsValue,
+  };
+
   game = {
     players,
     impostors,
@@ -440,6 +467,8 @@ btnConfigNext.onclick = () => {
     roles: [],
     currentPlayer: 0,
     playerNames,
+    theme: themeValue,
+    customWords: customWordsValue,
   };
 
   startRound();
@@ -490,6 +519,16 @@ function showRoleScreen() {
   showScreen("role");
 }
 
+function triggerPlayerTransition() {
+  const roleScreen = screens.role;
+  if (!roleScreen) {
+    return;
+  }
+  roleScreen.classList.remove("player-transition");
+  void roleScreen.offsetWidth;
+  roleScreen.classList.add("player-transition");
+}
+
 btnShowRole.onclick = () => {
   renderRoleText();
   roleOverlay.classList.remove("hidden");
@@ -507,6 +546,7 @@ btnNextPlayer.onclick = () => {
   } else {
     triggerFeedback("next");
     showRoleScreen();
+    triggerPlayerTransition();
   }
 };
 
@@ -527,6 +567,9 @@ btnNextRound.onclick = () => {
 };
 
 btnEndGame.onclick = () => {
+  if (!confirm(t("endGameConfirm"))) {
+    return;
+  }
   clearGame();
   showScreen("end");
 };
@@ -536,6 +579,40 @@ btnRestart.onclick = () => {
   showScreen("start");
 };
 
+if (btnRestartSame) {
+  btnRestartSame.onclick = () => {
+    if (!lastConfig) {
+      return;
+    }
+
+    themeSelect.value = lastConfig.theme || themeSelect.value;
+    if (lastConfig.theme === "custom") {
+      customWordsInput.value = lastConfig.customWords || "";
+    }
+    customWordsContainer.classList.toggle(
+      "hidden",
+      themeSelect.value !== "custom"
+    );
+    updateThemePreview();
+
+    game = {
+      players: lastConfig.players,
+      impostors: lastConfig.impostors,
+      totalRounds: lastConfig.totalRounds,
+      currentRound: 1,
+      roles: [],
+      currentPlayer: 0,
+      playerNames: Array.isArray(lastConfig.playerNames)
+        ? lastConfig.playerNames.slice()
+        : [],
+      theme: lastConfig.theme,
+      customWords: lastConfig.customWords,
+    };
+
+    startRound();
+  };
+}
+
 applyTranslations();
 syncPlayerNameInputs();
 
@@ -543,6 +620,16 @@ const savedGame = localStorage.getItem("impostor-game");
 
 if (savedGame) {
   game = JSON.parse(savedGame);
+  if (!lastConfig && game.players && game.impostors && game.totalRounds) {
+    lastConfig = {
+      players: game.players,
+      impostors: game.impostors,
+      totalRounds: game.totalRounds,
+      theme: game.theme,
+      playerNames: Array.isArray(game.playerNames) ? game.playerNames : [],
+      customWords: game.customWords || "",
+    };
+  }
 
   if (game.currentPlayer < game.players) {
     showRoleScreen();

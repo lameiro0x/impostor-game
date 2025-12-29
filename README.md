@@ -12,16 +12,20 @@ The project is designed as a small but complete frontend application, demonstrat
 - 🌍 Internationalization (Spanish / English)
 - 🎯 Dynamic themes and word sets loaded from JSON
 - 💾 Game state persistence using `localStorage`
+- 👤 Custom player names support
+- 📊 Clear player and round progress indicators
 - 📱 Responsive, mobile-friendly UI
 - ⚙️ No frameworks, no dependencies (pure HTML, CSS, JS)
 
 ---
 
-## Live Demo
+## Play the Application
 
-A live version of the application is available here:
+The game is fully playable directly in the browser at:
 
-👉 **[https://play.lameiro0x.com](https://play.lameiro0x.com/)**
+👉 **https://play.lameiro0x.com**
+
+No installation or setup is required.
 
 ---
 
@@ -66,7 +70,14 @@ A live version of the application is available here:
 
 ---
 
-## Getting Started
+## UX Considerations
+
+The application is designed for real-world group usage, where a single device is passed between players.  
+Special care was taken to avoid accidental information leaks, reduce misclicks, and keep the game flow clear and predictable throughout the session.
+
+---
+
+## Getting Started (Local Development)
 
 No build step required.
 
@@ -76,17 +87,13 @@ cd impostor-game
 python3 -m http.server
 ```
 
+And yo can connect via your browser going to localhost.
+
 ---
 
 ## Motivation
 
 This project was built as a practical exercise to reinforce frontend fundamentals, state management in small applications, and internationalization without external libraries.
-
----
-
-## License
-
-MIT License
 
 ---
 

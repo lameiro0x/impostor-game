@@ -26,6 +26,8 @@ const I18N = {
     nextPlayer: "Siguiente jugador",
     nextRound: "Siguiente ronda",
     endGame: "Terminar partida",
+    endGameConfirm: "¿Seguro que quieres terminar la partida?",
+    restartSame: "Reiniciar con la misma configuración",
 
     gameOver: "Partida terminada",
     restart: "Reiniciar",
@@ -66,6 +68,8 @@ const I18N = {
     nextPlayer: "Next player",
     nextRound: "Next round",
     endGame: "End game",
+    endGameConfirm: "Are you sure you want to end the game?",
+    restartSame: "Restart with same settings",
 
     gameOver: "Game over",
     restart: "Restart",
