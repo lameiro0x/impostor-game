@@ -284,6 +284,17 @@ button:active {
   align-items: center;
 }
 
+#home-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+#home-intro.hidden {
+  display: none;
+}
+
 .hero-icon {
   font-size: 3rem;
   margin-bottom: 0.5rem;
@@ -351,6 +362,17 @@ button:active {
 
 .mode-panel label {
   text-align: left;
+}
+
+.mode-description {
+  margin: 0 0 1rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.players-count-label {
+  font-size: 1rem;
 }
 
 .online-note {

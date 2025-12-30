@@ -20,6 +20,7 @@ const modeOfflineBtn = document.getElementById("mode-offline");
 const modeOnlineBtn = document.getElementById("mode-online");
 const offlinePanel = document.getElementById("offline-panel");
 const onlinePanel = document.getElementById("online-panel");
+const homeIntro = document.getElementById("home-intro");
 const onlineNameInput = document.getElementById("online-name");
 const onlineCodeInput = document.getElementById("online-code");
 const btnCreateRoom = document.getElementById("btn-create-room");
@@ -615,6 +616,9 @@ function setMode(mode) {
   }
   if (onlinePanel) {
     onlinePanel.classList.toggle("hidden", mode !== "online");
+  }
+  if (homeIntro) {
+    homeIntro.classList.toggle("hidden", mode === "online");
   }
   if (mode === "offline") {
     resetOnlineState();

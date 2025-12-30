@@ -14,17 +14,19 @@
 
 <section id="screen-start">
   <div class="hero">
-    <div class="hero-icon">🎭</div>
-    <h1 class="game-title" data-i18n="title">¿Quién es el impostor?</h1>
-    <p class="game-subtitle" data-i18n="subtitle">
-      Un juego rápido de deducción social para grupos
-    </p>
+    <div id="home-intro">
+      <div class="hero-icon">🎭</div>
+      <h1 class="game-title" data-i18n="title">¿Quién es el impostor?</h1>
+      <p class="game-subtitle" data-i18n="subtitle">
+        Un juego rápido de deducción social para grupos
+      </p>
 
-    <ul class="how-to">
-      <li data-i18n="how1">Elige jugadores y tema</li>
-      <li data-i18n="how2">Descubre tu rol en secreto</li>
-      <li data-i18n="how3">Encuentra al impostor</li>
-    </ul>
+      <ul class="how-to">
+        <li data-i18n="how1">Elige jugadores y tema</li>
+        <li data-i18n="how2">Descubre tu rol en secreto</li>
+        <li data-i18n="how3">Encuentra al impostor</li>
+      </ul>
+    </div>
 
     <div class="mode-select">
       <button id="mode-offline" class="mode-btn active" type="button" data-i18n="offlineMode">Modo offline</button>
@@ -36,6 +38,9 @@
     </div>
 
     <div id="online-panel" class="mode-panel hidden">
+      <p class="mode-description" data-i18n="onlineModeDesc">
+        Este modo permite jugar desde varios dispositivos. Un jugador crea la sala y los demás se unen usando el código de sala generado. Asígnate un nombre y después crea o únete a una sala.
+      </p>
       <label>
         <span data-i18n="onlineName">Nombre</span>
         <input type="text" id="online-name" autocomplete="nickname">
@@ -97,13 +102,16 @@
 
 <section id="screen-config" class="hidden">
   <h2 data-i18n="config">Configuración</h2>
+  <p class="mode-description" data-i18n="offlineModeDesc">
+    Este modo está pensado para jugar con un solo dispositivo. Los jugadores se van pasando el dispositivo para que cada uno vea su rol de forma privada.
+  </p>
   <div class="mode-select">
     <button id="btn-switch-online" class="mode-btn" type="button" data-i18n="onlineMode">Modo online</button>
   </div>
 
-  <label>
-    <span data-i18n="players">Jugadores</span>
-    <input type="number" id="players" min="3" value="4">
+  <label class="players-count-label">
+    <span data-i18n="players">Selecciona el número de jugadores</span>
+    <input type="number" id="players" min="3" value="0">
   </label>
 
   <label>
