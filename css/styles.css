@@ -353,6 +353,13 @@ button:active {
   text-align: left;
 }
 
+.online-note {
+  margin: 0.2rem 0 0.8rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
 .online-settings {
   margin-top: 0.4rem;
   width: 100%;

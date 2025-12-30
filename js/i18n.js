@@ -26,6 +26,7 @@ const I18N = {
     roomNotFound: "Sala no encontrada.",
     onlineUnavailable: "El modo online no está disponible ahora.",
     onlineError: "No se pudo conectar a la sala.",
+    onlineColdStart: "Nota: la primera vez que se crea una sala, el servidor puede tardar un momento en responder (aprox 1 min). Si ocurre, recarga la página y vuelve a intentarlo.",
     createdBy: "Creado por",
     langToggle: "Cambiar idioma",
 
@@ -90,6 +91,7 @@ const I18N = {
     roomNotFound: "Room not found.",
     onlineUnavailable: "Online mode is unavailable right now.",
     onlineError: "Could not connect to the room.",
+    onlineColdStart: "Note: the first time a room is created, the server may take a moment to respond (about 1 min). If this happens, refresh the page and try again.",
     createdBy: "Created by",
     langToggle: "Change language",
 
