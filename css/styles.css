@@ -330,6 +330,10 @@ button:active {
   margin: 0 0 1rem 0;
 }
 
+.mode-select.hidden {
+  display: none;
+}
+
 .mode-btn {
   flex: 1;
   width: 100%;

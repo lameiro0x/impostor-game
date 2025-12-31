@@ -15,9 +15,11 @@ const btnEndGame = document.getElementById("btn-end-game");
 const btnRestart = document.getElementById("btn-restart");
 const btnRestartSame = document.getElementById("btn-restart-same");
 const btnLang = document.getElementById("btn-lang");
-const btnSwitchOnline = document.getElementById("btn-switch-online");
+const btnChangeModeOffline = document.getElementById("btn-change-mode-offline");
+const btnChangeModeOnline = document.getElementById("btn-change-mode-online");
 const modeOfflineBtn = document.getElementById("mode-offline");
 const modeOnlineBtn = document.getElementById("mode-online");
+const homeModeSelect = document.getElementById("home-mode-select");
 const offlinePanel = document.getElementById("offline-panel");
 const onlinePanel = document.getElementById("online-panel");
 const homeIntro = document.getElementById("home-intro");
@@ -58,12 +60,19 @@ const roundTitle = document.getElementById("round-title");
 const countdownLabel = document.getElementById("countdown-label");
 const roundCountdown = document.getElementById("round-countdown");
 const countdownNumber = document.getElementById("countdown-number");
+const homeModeDescOffline = document.getElementById("home-mode-desc-offline");
+const homeModeDescOnline = document.getElementById("home-mode-desc-online");
 
 let WORDS = {};
 
 let game = {};
 let lastConfig = null;
 let onlineMode = "offline";
+let onlineConfigOpen = false;
+let configHistoryActive = false;
+let pendingHistoryCallback = null;
+let suppressHistoryPush = false;
+let gameHistoryActive = false;
 let socket = null;
 let roomState = null;
 let countdownInterval = null;
@@ -139,6 +148,30 @@ function refreshDynamicText() {
   }
 }
 
+function getRoundOffset(round, players) {
+  if (!Number.isFinite(round) || !Number.isFinite(players) || players <= 0) {
+    return 0;
+  }
+  const offset = (round - 1) % players;
+  return offset < 0 ? offset + players : offset;
+}
+
+function getActivePlayerIndex(turnIndex) {
+  if (!Number.isFinite(turnIndex) || !Number.isFinite(game.players) || game.players <= 0) {
+    return null;
+  }
+  const offset = getRoundOffset(game.currentRound, game.players);
+  return (turnIndex + offset) % game.players;
+}
+
+function getTurnIndexForPlayer(playerIndex, round, players) {
+  if (!Number.isFinite(playerIndex) || !Number.isFinite(players) || players <= 0) {
+    return playerIndex;
+  }
+  const offset = getRoundOffset(round, players);
+  return (playerIndex - offset + players) % players;
+}
+
 function updateRoleHeader() {
   if (
     !Number.isFinite(game.currentPlayer) ||
@@ -149,7 +182,12 @@ function updateRoleHeader() {
     return;
   }
 
-  const rawName = game.playerNames && game.playerNames[game.currentPlayer];
+  const activeIndex = getActivePlayerIndex(game.currentPlayer);
+  if (!Number.isFinite(activeIndex)) {
+    return;
+  }
+
+  const rawName = game.playerNames && game.playerNames[activeIndex];
   const displayName = rawName ? rawName : "";
 
   if (displayName) {
@@ -160,14 +198,14 @@ function updateRoleHeader() {
     const metaEl = document.createElement("span");
     metaEl.className = "player-meta";
     metaEl.textContent = formatText(t("playerTitle"), {
-      num: game.currentPlayer + 1,
+      num: activeIndex + 1,
       total: game.players,
     });
     playerTitle.appendChild(nameEl);
     playerTitle.appendChild(metaEl);
   } else {
     playerTitle.textContent = formatText(t("playerTitle"), {
-      num: game.currentPlayer + 1,
+      num: activeIndex + 1,
       total: game.players,
     });
   }
@@ -176,6 +214,57 @@ function updateRoleHeader() {
     total: game.totalRounds,
   });
 }
+
+window.addEventListener("popstate", event => {
+  if (pendingHistoryCallback) {
+    configHistoryActive = false;
+    const cb = pendingHistoryCallback;
+    pendingHistoryCallback = null;
+    cb();
+    return;
+  }
+  if (onlineMode !== "online" && !screens.role.classList.contains("hidden")) {
+    if (!confirm(t("leaveGameConfirmOffline"))) {
+      pushGameHistory();
+      return;
+    }
+    roleOverlay.classList.add("hidden");
+    hideRoundCountdown();
+    clearGame();
+    setMode("offline");
+    showScreen("end");
+    return;
+  }
+  const state = event.state || {};
+  if (state.screen === "config") {
+    suppressHistoryPush = true;
+    onlineConfigOpen = false;
+    setMode("offline");
+    showScreen("config");
+    suppressHistoryPush = false;
+    configHistoryActive = true;
+    return;
+  }
+  if (state.screen === "online-config") {
+    suppressHistoryPush = true;
+    onlineConfigOpen = true;
+    setMode("online");
+    showScreen("start");
+    renderLobby();
+    suppressHistoryPush = false;
+    configHistoryActive = true;
+    return;
+  }
+  if (!configHistoryActive) {
+    return;
+  }
+  configHistoryActive = false;
+  if (!screens.config.classList.contains("hidden") || (getActiveScreenName() === "start" && onlineConfigOpen)) {
+    onlineConfigOpen = false;
+    showScreen("start");
+    renderLobby();
+  }
+});
 
 function updateRoundEndTitle() {
   if (!Number.isFinite(game.currentRound)) {
@@ -194,12 +283,17 @@ function renderRoleText() {
     return;
   }
 
-  if (game.roles[game.currentPlayer] === "IMPOSTOR") {
+  const activeIndex = getActivePlayerIndex(game.currentPlayer);
+  if (!Number.isFinite(activeIndex)) {
+    return;
+  }
+
+  if (game.roles[activeIndex] === "IMPOSTOR") {
     roleText.textContent = t("impostor");
     roleText.classList.add("role-impostor");
   } else {
     roleText.innerHTML = `${t("wordIs")} <span class="word-highlight">
-      ${game.roles[game.currentPlayer]}
+      ${game.roles[activeIndex]}
     </span>`;
   }
 }
@@ -289,8 +383,16 @@ function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.add("hidden"));
   screens[name].classList.remove("hidden");
   updateLanguageToggleState(name);
+  if (name === "start") {
+    updateStartView();
+  }
+  if (name === "config") {
+    pushConfigHistory();
+    gameHistoryActive = false;
+  }
   if (name === "end") {
     updateEndScreenButtons();
+    gameHistoryActive = false;
   }
 }
 
@@ -300,6 +402,7 @@ function saveGame() {
 
 function clearGame() {
   localStorage.removeItem("impostor-game");
+  gameHistoryActive = false;
 }
 
 const feedbackAudio = {
@@ -359,21 +462,64 @@ fetch("data/words.json")
   .then(res => res.json())
   .then(data => {
     WORDS = data;
+    buildAllThemes();
     populateThemes();
   })
   .catch(err => {
     console.error("Error cargando words.json", err);
   });
 
+function buildAllThemes() {
+  if (!WORDS || Object.keys(WORDS).length === 0) {
+    return;
+  }
+  const themeKeys = Object.keys(WORDS).filter(key => key !== "all");
+  const allWords = { es: [], en: [] };
+  const seen = { es: new Set(), en: new Set() };
+  themeKeys.forEach(key => {
+    const theme = WORDS[key];
+    if (!theme || !theme.words) {
+      return;
+    }
+    ["es", "en"].forEach(lang => {
+      const list = theme.words[lang] || theme.words.es || theme.words.en || [];
+      if (!Array.isArray(list)) {
+        return;
+      }
+      list.forEach(word => {
+        const cleaned = typeof word === "string" ? word.trim() : String(word).trim();
+        if (!cleaned || seen[lang].has(cleaned)) {
+          return;
+        }
+        seen[lang].add(cleaned);
+        allWords[lang].push(cleaned);
+      });
+    });
+  });
+  const labelEs = WORDS.all && WORDS.all.es ? WORDS.all.es : "🌐 Todos los temas";
+  const labelEn = WORDS.all && WORDS.all.en ? WORDS.all.en : "🌐 All themes";
+  WORDS.all = {
+    es: labelEs,
+    en: labelEn,
+    words: allWords,
+  };
+}
+
 function populateThemes() {
   if (!WORDS || Object.keys(WORDS).length === 0) {
     return;
   }
+  buildAllThemes();
 
   const currentValue = themeSelect.value;
   themeSelect.innerHTML = "";
 
-  Object.keys(WORDS).forEach(key => {
+  const themeKeys = Object.keys(WORDS).filter(key => key !== "all");
+  if (WORDS.all) {
+    themeKeys.push("all");
+  }
+
+  themeKeys.forEach(key => {
     const option = document.createElement("option");
     option.value = key;
     option.textContent = WORDS[key][currentLang] || WORDS[key].es || WORDS[key].en || key;
@@ -399,7 +545,6 @@ function populateThemes() {
   if (onlineThemeSelect) {
     const currentOnlineValue = onlineThemeSelect.value;
     onlineThemeSelect.innerHTML = "";
-    const themeKeys = Object.keys(WORDS);
     themeKeys.forEach(key => {
       const option = document.createElement("option");
       option.value = key;
@@ -611,18 +756,66 @@ function setMode(mode) {
   if (modeOnlineBtn) {
     modeOnlineBtn.classList.toggle("active", mode === "online");
   }
-  if (offlinePanel) {
-    offlinePanel.classList.toggle("hidden", mode === "online");
-  }
-  if (onlinePanel) {
-    onlinePanel.classList.toggle("hidden", mode !== "online");
-  }
-  if (homeIntro) {
-    homeIntro.classList.toggle("hidden", mode === "online");
-  }
   if (mode === "offline") {
+    onlineConfigOpen = false;
     resetOnlineState();
   }
+  updateStartView();
+}
+
+function updateStartView() {
+  const showOnlineConfig = onlineMode === "online" && onlineConfigOpen;
+  if (showOnlineConfig) {
+    pushConfigHistory();
+  }
+  if (onlinePanel) {
+    onlinePanel.classList.toggle("hidden", !showOnlineConfig);
+  }
+  if (homeIntro) {
+    homeIntro.classList.toggle("hidden", showOnlineConfig);
+  }
+  if (homeModeSelect) {
+    homeModeSelect.classList.toggle("hidden", showOnlineConfig);
+  }
+  if (offlinePanel) {
+    offlinePanel.classList.toggle("hidden", showOnlineConfig);
+  }
+  if (homeModeDescOffline) {
+    const show = !showOnlineConfig && onlineMode === "offline";
+    homeModeDescOffline.classList.toggle("hidden", !show);
+  }
+  if (homeModeDescOnline) {
+    const show = !showOnlineConfig && onlineMode === "online";
+    homeModeDescOnline.classList.toggle("hidden", !show);
+  }
+}
+
+function pushConfigHistory() {
+  if (suppressHistoryPush || configHistoryActive) {
+    return;
+  }
+  const screen = onlineMode === "online" && onlineConfigOpen ? "online-config" : "config";
+  history.pushState({ screen }, "");
+  configHistoryActive = true;
+}
+
+function pushGameHistory() {
+  if (suppressHistoryPush || gameHistoryActive) {
+    return;
+  }
+  history.pushState({ screen: "game" }, "");
+  gameHistoryActive = true;
+}
+
+function clearConfigHistory(callback) {
+  if (!configHistoryActive) {
+    if (typeof callback === "function") {
+      callback();
+    }
+    return;
+  }
+  pendingHistoryCallback = typeof callback === "function" ? callback : null;
+  history.back();
 }
 
 function attemptAutoReconnect() {
@@ -664,6 +857,7 @@ function attemptAutoReconnect() {
     roomState = response.room;
     roleOverlay.classList.add("hidden");
     hideRoundCountdown();
+    onlineConfigOpen = true;
     showScreen("start");
     renderLobby();
   });
@@ -776,13 +970,15 @@ function ensureSocket() {
     const safeIndex = playerIndex >= 0 ? playerIndex : 0;
     const players = roomState.players;
     const gameState = roomState.game || {};
+    const roundValue = payload.round || gameState.currentRound || 1;
+    const turnIndex = getTurnIndexForPlayer(safeIndex, roundValue, players.length);
     game = {
       players: players.length,
       impostors: payload.impostors || gameState.impostors || 1,
       totalRounds: payload.totalRounds || gameState.totalRounds || 1,
-      currentRound: payload.round || gameState.currentRound || 1,
+      currentRound: roundValue,
       roles: Array(players.length).fill(null),
-      currentPlayer: safeIndex,
+      currentPlayer: turnIndex,
       playerNames: players.map(player => player.name),
     };
     game.roles[safeIndex] = payload.role;
@@ -843,16 +1039,25 @@ if (modeOfflineBtn) {
 
 if (modeOnlineBtn) {
   modeOnlineBtn.onclick = () => {
+    onlineConfigOpen = false;
     setMode("online");
   };
 }
 
-if (btnSwitchOnline) {
-  btnSwitchOnline.onclick = () => {
-    setMode("online");
+const handleChangeMode = () => {
+  const goHome = () => {
+    onlineConfigOpen = false;
     showScreen("start");
-    renderLobby();
   };
+  clearConfigHistory(goHome);
+};
+
+if (btnChangeModeOffline) {
+  btnChangeModeOffline.onclick = handleChangeMode;
+}
+
+if (btnChangeModeOnline) {
+  btnChangeModeOnline.onclick = handleChangeMode;
 }
 
 if (btnCreateRoom) {
@@ -1075,7 +1280,15 @@ if (btnRestartOnline) {
   };
 }
 
-btnStart.onclick = () => showScreen("config");
+btnStart.onclick = () => {
+  if (onlineMode === "online") {
+    onlineConfigOpen = true;
+    showScreen("start");
+    renderLobby();
+    return;
+  }
+  showScreen("config");
+};
 
 playersInput.oninput = () => {
   syncPlayerNameInputs();
@@ -1232,8 +1445,15 @@ function startRound() {
 }
 
 function showRoleScreen() {
+  if (configHistoryActive) {
+    clearConfigHistory(showRoleScreen);
+    return;
+  }
   updateRoleHeader();
   showScreen("role");
+  if (onlineMode !== "online") {
+    pushGameHistory();
+  }
   updateOnlineHostControls();
   updateRoleConfirmButton();
 }
@@ -1307,8 +1527,9 @@ btnRestart.onclick = () => {
       alert(t("notHost"));
       return;
     }
-    showScreen("start");
+    onlineConfigOpen = true;
     setMode("online");
+    showScreen("start");
     renderLobby();
     return;
   }

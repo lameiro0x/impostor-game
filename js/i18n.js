@@ -30,6 +30,7 @@ const I18N = {
     onlineError: "No se pudo conectar a la sala.",
     onlineColdStart: "Nota: la primera vez que se crea una sala, el servidor puede tardar un momento en responder (aprox 1 min). Si ocurre, recarga la página y vuelve a intentarlo.",
     createdBy: "Creado por",
+    changeMode: "Cambiar modo",
     langToggle: "Cambiar idioma",
 
     config: "Configuración",
@@ -50,10 +51,11 @@ const I18N = {
     nextRound: "Siguiente ronda",
     endGame: "Terminar partida",
     endGameConfirm: "¿Seguro que quieres terminar la partida?",
+    leaveGameConfirmOffline: "¿Seguro que quieres terminar la partida actual?",
     restartSame: "Reiniciar con la misma configuración",
 
     gameOver: "Partida terminada",
-    restart: "Reiniciar",
+    restart: "Reiniciar con una configuración diferente",
 
     impostor: "ERES EL IMPOSTOR",
     wordIs: "La palabra es:",
@@ -62,7 +64,7 @@ const I18N = {
     roundIndicator: "Ronda {current} / {total}",
     gameCountdown: "La partida comienza en...",
     roundCountdown: "Siguiente ronda en...",
-    roundEndTitle: "Fin de la ronda {round}",
+    roundEndTitle: "A jugar!",
     noWords: "No hay palabras disponibles para este tema"
   },
 
@@ -97,6 +99,7 @@ const I18N = {
     onlineError: "Could not connect to the room.",
     onlineColdStart: "Note: the first time a room is created, the server may take a moment to respond (about 1 min). If this happens, refresh the page and try again.",
     createdBy: "Created by",
+    changeMode: "Change mode",
     langToggle: "Change language",
 
     config: "Settings",
@@ -117,10 +120,11 @@ const I18N = {
     nextRound: "Next round",
     endGame: "End game",
     endGameConfirm: "Are you sure you want to end the game?",
+    leaveGameConfirmOffline: "Are you sure you want to end the current game?",
     restartSame: "Restart with same settings",
 
     gameOver: "Game over",
-    restart: "Restart",
+    restart: "Restart with differentes settings",
 
     impostor: "YOU ARE THE IMPOSTOR",
     wordIs: "The word is:",
@@ -129,7 +133,7 @@ const I18N = {
     roundIndicator: "Round {current} / {total}",
     gameCountdown: "Game starting in...",
     roundCountdown: "Next round starts in...",
-    roundEndTitle: "End of round {round}",
+    roundEndTitle: "Let's play!",
     noWords: "No words available for this theme"
   }
 };

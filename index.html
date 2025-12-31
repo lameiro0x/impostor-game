@@ -28,16 +28,26 @@
       </ul>
     </div>
 
-    <div class="mode-select">
+    <div id="home-mode-select" class="mode-select">
       <button id="mode-offline" class="mode-btn active" type="button" data-i18n="offlineMode">Modo offline</button>
       <button id="mode-online" class="mode-btn" type="button" data-i18n="onlineMode">Modo online</button>
     </div>
+
+    <p id="home-mode-desc-offline" class="mode-description" data-i18n="offlineModeDesc">
+      Este modo está pensado para jugar con un solo dispositivo. Los jugadores se van pasando el dispositivo para que cada uno vea su rol de forma privada.
+    </p>
+    <p id="home-mode-desc-online" class="mode-description hidden" data-i18n="onlineModeDesc">
+      Este modo permite jugar desde varios dispositivos. Un jugador crea la sala y los demás se unen usando el código de sala generado. Asígnate un nombre y después crea o únete a una sala.
+    </p>
 
     <div id="offline-panel" class="mode-panel">
       <button id="btn-start" data-i18n="play">Jugar</button>
     </div>
 
     <div id="online-panel" class="mode-panel hidden">
+      <div class="mode-select">
+        <button id="btn-change-mode-online" class="mode-btn" type="button" data-i18n="changeMode">Cambiar modo</button>
+      </div>
       <p class="mode-description" data-i18n="onlineModeDesc">
         Este modo permite jugar desde varios dispositivos. Un jugador crea la sala y los demás se unen usando el código de sala generado. Asígnate un nombre y después crea o únete a una sala.
       </p>
@@ -106,7 +116,7 @@
     Este modo está pensado para jugar con un solo dispositivo. Los jugadores se van pasando el dispositivo para que cada uno vea su rol de forma privada.
   </p>
   <div class="mode-select">
-    <button id="btn-switch-online" class="mode-btn" type="button" data-i18n="onlineMode">Modo online</button>
+    <button id="btn-change-mode-offline" class="mode-btn" type="button" data-i18n="changeMode">Cambiar modo</button>
   </div>
 
   <label class="players-count-label">
