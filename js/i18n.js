@@ -44,6 +44,8 @@ const I18N = {
     playerNames: "Nombres de jugadores (opcional)",
     playerLabel: "Jugador {num}",
     startGame: "Empezar",
+    hintMode: "Modo pista para el impostor",
+    impostorHint: "Pista: {hint}",
 
     viewRole: "Ver mi rol",
     roleConfirm: "OK",
@@ -51,6 +53,13 @@ const I18N = {
     nextRound: "Siguiente ronda",
     endGame: "Terminar partida",
     endGameConfirm: "¿Seguro que quieres terminar la partida?",
+    selectImpostor: "Seleccionar impostor",
+    impostorSelectionLabel: "Elige al impostor",
+    confirmSelection: "Confirmar",
+    impostorGuessWrong: "{name} no era el impostor. La partida continúa.",
+    impostorGuessCorrect: "¡Correcto! {name} era el impostor. Quedan {remaining}.",
+    impostorAllFound: "¡Encontrados todos los impostores!",
+    waitingForHostSelection: "Esperando la selección del anfitrión...",
     leaveGameConfirmOffline: "¿Seguro que quieres terminar la partida actual?",
     restartSame: "Reiniciar con la misma configuración",
 
@@ -65,6 +74,7 @@ const I18N = {
     gameCountdown: "La partida comienza en...",
     roundCountdown: "Siguiente ronda en...",
     roundEndTitle: "A jugar!",
+    roundEndTitleCaught: "¡Atrapados!",
     noWords: "No hay palabras disponibles para este tema"
   },
 
@@ -113,6 +123,8 @@ const I18N = {
     playerNames: "Player names (optional)",
     playerLabel: "Player {num}",
     startGame: "Start game",
+    hintMode: "Hint mode for impostor",
+    impostorHint: "Hint: {hint}",
 
     viewRole: "View my role",
     roleConfirm: "Got it",
@@ -120,6 +132,13 @@ const I18N = {
     nextRound: "Next round",
     endGame: "End game",
     endGameConfirm: "Are you sure you want to end the game?",
+    selectImpostor: "Select impostor",
+    impostorSelectionLabel: "Choose the impostor",
+    confirmSelection: "Confirm",
+    impostorGuessWrong: "{name} was not the impostor. The game continues.",
+    impostorGuessCorrect: "Correct! {name} was the impostor. {remaining} left.",
+    impostorAllFound: "All impostors have been found!",
+    waitingForHostSelection: "Waiting for the host's selection...",
     leaveGameConfirmOffline: "Are you sure you want to end the current game?",
     restartSame: "Restart with same settings",
 
@@ -134,6 +153,7 @@ const I18N = {
     gameCountdown: "Game starting in...",
     roundCountdown: "Next round starts in...",
     roundEndTitle: "Let's play!",
+    roundEndTitleCaught: "Caught!",
     noWords: "No words available for this theme"
   }
 };

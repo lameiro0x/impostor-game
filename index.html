@@ -79,6 +79,11 @@
           <input type="number" id="online-rounds" min="1" value="3">
         </label>
 
+        <label class="checkbox-label">
+          <input type="checkbox" id="online-hint-mode">
+          <span data-i18n="hintMode">Modo pista para el impostor</span>
+        </label>
+
         <label>
           <span data-i18n="theme">Tema</span>
           <select id="online-theme"></select>
@@ -139,6 +144,11 @@
     <input type="number" id="rounds" min="1" value="3">
   </label>
 
+  <label class="checkbox-label">
+    <input type="checkbox" id="hint-mode">
+    <span data-i18n="hintMode">Modo pista para el impostor</span>
+  </label>
+
   <label>
     <span data-i18n="theme">Tema</span>
     <select id="theme">
@@ -163,6 +173,7 @@
   <p id="round-indicator"></p>
   <button id="btn-show-role" data-i18n="viewRole">Ver mi rol</button>
   <div id="online-host-controls" class="online-host-controls hidden">
+    <button id="btn-online-select-impostor" type="button" data-i18n="selectImpostor">Seleccionar impostor</button>
     <button id="btn-online-next-round" type="button" data-i18n="nextRound">Siguiente ronda</button>
     <button id="btn-online-end-game" type="button" data-i18n="endGame">Terminar partida</button>
   </div>
@@ -184,6 +195,17 @@
 
 <section id="screen-round-end" class="hidden">
   <h2 id="round-title"></h2>
+  <div id="impostor-selection-container" class="impostor-selection">
+    <label id="impostor-selection-label">
+      <span data-i18n="impostorSelectionLabel">Elige al impostor</span>
+      <select id="impostor-selection"></select>
+    </label>
+    <button id="btn-confirm-impostor" type="button" data-i18n="confirmSelection">Confirmar</button>
+    <p id="impostor-selection-message" class="mode-description impostor-selection-message hidden"></p>
+    <p id="impostor-selection-wait" class="mode-description hidden" data-i18n="waitingForHostSelection">
+      Esperando la selección del anfitrión...
+    </p>
+  </div>
   <button id="btn-next-round" data-i18n="nextRound">Siguiente ronda</button>
   <button id="btn-end-game" data-i18n="endGame">Terminar partida</button>
 </section>

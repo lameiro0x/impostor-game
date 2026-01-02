@@ -33,6 +33,7 @@ const playerList = document.getElementById("player-list");
 const onlineSettings = document.getElementById("online-settings");
 const onlineImpostorsInput = document.getElementById("online-impostors");
 const onlineRoundsInput = document.getElementById("online-rounds");
+const onlineHintModeInput = document.getElementById("online-hint-mode");
 const onlineThemeSelect = document.getElementById("online-theme");
 const onlineCustomWordsInput = document.getElementById("online-custom-words");
 const onlineCustomWordsContainer = document.getElementById("online-custom-words-container");
@@ -42,10 +43,12 @@ const btnRestartOnline = document.getElementById("btn-restart-online");
 const onlineHostControls = document.getElementById("online-host-controls");
 const btnOnlineNextRound = document.getElementById("btn-online-next-round");
 const btnOnlineEndGame = document.getElementById("btn-online-end-game");
+const btnOnlineSelectImpostor = document.getElementById("btn-online-select-impostor");
 
 const playersInput = document.getElementById("players");
 const impostorsInput = document.getElementById("impostors");
 const roundsInput = document.getElementById("rounds");
+const hintModeInput = document.getElementById("hint-mode");
 const themeSelect = document.getElementById("theme");
 const customWordsContainer = document.getElementById("custom-words-container");
 const customWordsInput = document.getElementById("custom-words");
@@ -62,6 +65,12 @@ const roundCountdown = document.getElementById("round-countdown");
 const countdownNumber = document.getElementById("countdown-number");
 const homeModeDescOffline = document.getElementById("home-mode-desc-offline");
 const homeModeDescOnline = document.getElementById("home-mode-desc-online");
+const impostorSelectionContainer = document.getElementById("impostor-selection-container");
+const impostorSelectionLabel = document.getElementById("impostor-selection-label");
+const impostorSelectionSelect = document.getElementById("impostor-selection");
+const btnConfirmImpostor = document.getElementById("btn-confirm-impostor");
+const impostorSelectionMessage = document.getElementById("impostor-selection-message");
+const impostorSelectionWait = document.getElementById("impostor-selection-wait");
 
 let WORDS = {};
 
@@ -73,6 +82,9 @@ let configHistoryActive = false;
 let pendingHistoryCallback = null;
 let suppressHistoryPush = false;
 let gameHistoryActive = false;
+let onlineSelectionActive = false;
+let onlineSelectionRemaining = null;
+let onlineDiscoveredImpostors = new Set();
 let socket = null;
 let roomState = null;
 let countdownInterval = null;
@@ -83,6 +95,21 @@ const ONLINE_CODE_KEY = "impostor-online-code";
 
 const LANG_KEY = "impostor-lang";
 const SUPPORTED_LANGS = ["es", "en"];
+const THEME_HINTS = {
+  all: { es: "mezcla", en: "mixed" },
+  food: { es: "comida", en: "food" },
+  places: { es: "lugar", en: "place" },
+  animals: { es: "animal", en: "animal" },
+  movies_series: { es: "cine", en: "movie" },
+  sports: { es: "deporte", en: "sport" },
+  professions: { es: "oficio", en: "job" },
+  everyday_objects: { es: "objeto", en: "object" },
+  transport: { es: "transporte", en: "transport" },
+  actions_verbs: { es: "acción", en: "action" },
+  hobbies: { es: "ocio", en: "hobby" },
+  footballers: { es: "futbolista", en: "footballer" },
+};
+const CUSTOM_HINTS = { es: "Personalizado", en: "Custom" };
 
 function resolveInitialLang() {
   const saved = localStorage.getItem(LANG_KEY);
@@ -170,6 +197,54 @@ function getTurnIndexForPlayer(playerIndex, round, players) {
   }
   const offset = getRoundOffset(round, players);
   return (playerIndex - offset + players) % players;
+}
+
+function normalizeWord(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getThemeHint(themeKey, lang) {
+  const theme = WORDS && WORDS[themeKey];
+  const hint = (theme && theme.hint) || THEME_HINTS[themeKey];
+  if (!hint) {
+    return "";
+  }
+  if (theme && !theme.hint) {
+    theme.hint = hint;
+  }
+  return hint[lang] || hint.es || hint.en || "";
+}
+
+function generateHintWord(secretWord, themeKey, lang) {
+  const normalized = normalizeWord(secretWord);
+  if (!normalized) {
+    return "";
+  }
+  if (themeKey === "custom") {
+    return CUSTOM_HINTS[lang] || CUSTOM_HINTS.es || "";
+  }
+  const theme = WORDS && WORDS[themeKey];
+  if (!theme || !theme.words) {
+    return "";
+  }
+  if (!theme.hintMap) {
+    theme.hintMap = {};
+  }
+  if (!theme.hintMap[lang]) {
+    const words = theme.words[lang] || theme.words.es || theme.words.en || [];
+    const hintValue = getThemeHint(themeKey, lang);
+    const map = {};
+    if (Array.isArray(words)) {
+      words.forEach(word => {
+        const key = normalizeWord(word);
+        if (key && !map[key]) {
+          map[key] = hintValue;
+        }
+      });
+    }
+    theme.hintMap[lang] = map;
+  }
+  return theme.hintMap[lang][normalized] || getThemeHint(themeKey, lang);
 }
 
 function updateRoleHeader() {
@@ -267,13 +342,207 @@ window.addEventListener("popstate", event => {
 });
 
 function updateRoundEndTitle() {
-  if (!Number.isFinite(game.currentRound)) {
+  const roundValue = Number.isFinite(game.currentRound)
+    ? game.currentRound
+    : (roomState && roomState.game && Number.isFinite(roomState.game.currentRound)
+      ? roomState.game.currentRound
+      : null);
+  if (!Number.isFinite(roundValue)) {
     return;
   }
-
-  roundTitle.textContent = formatText(t("roundEndTitle"), {
-    round: game.currentRound,
+  const remaining = onlineMode === "online"
+    ? getOnlineRemainingImpostors()
+    : getOfflineRemainingImpostors();
+  const titleKey = remaining === 0 ? "roundEndTitleCaught" : "roundEndTitle";
+  roundTitle.textContent = formatText(t(titleKey), {
+    round: roundValue,
   });
+}
+
+function getOfflineDiscoveredImpostors() {
+  if (!Array.isArray(game.discoveredImpostors)) {
+    game.discoveredImpostors = [];
+  }
+  return game.discoveredImpostors;
+}
+
+function getOfflineImpostorIndices() {
+  if (!Array.isArray(game.roles)) {
+    return [];
+  }
+  return game.roles.reduce((acc, role, index) => {
+    if (role === "IMPOSTOR") {
+      acc.push(index);
+    }
+    return acc;
+  }, []);
+}
+
+function getOfflineRemainingImpostors() {
+  const total = getOfflineImpostorIndices().length;
+  const found = getOfflineDiscoveredImpostors().length;
+  return Math.max(total - found, 0);
+}
+
+function getOnlineRemainingImpostors() {
+  if (Number.isFinite(onlineSelectionRemaining)) {
+    return onlineSelectionRemaining;
+  }
+  const gameState = roomState && roomState.game;
+  if (gameState && Number.isFinite(gameState.impostors)) {
+    return gameState.impostors;
+  }
+  return 0;
+}
+
+function getImpostorSelectionPlayers() {
+  if (onlineMode === "online") {
+    if (!roomState || !Array.isArray(roomState.players)) {
+      return [];
+    }
+    return roomState.players.map((player, index) => {
+      const rawName = player && player.name ? player.name.trim() : "";
+      return {
+        id: player.id,
+        name: rawName || formatText(t("playerLabel"), { num: index + 1 }),
+        index,
+      };
+    });
+  }
+  const total = Number.isFinite(game.players) ? game.players : 0;
+  const names = Array.isArray(game.playerNames) ? game.playerNames : [];
+  return Array.from({ length: total }, (_, index) => {
+    const rawName = names[index] ? names[index].trim() : "";
+    return {
+      id: String(index),
+      name: rawName || formatText(t("playerLabel"), { num: index + 1 }),
+      index,
+    };
+  });
+}
+
+function renderImpostorSelectionOptions() {
+  if (!impostorSelectionSelect) {
+    return;
+  }
+  const players = getImpostorSelectionPlayers();
+  impostorSelectionSelect.innerHTML = "";
+  if (onlineMode === "online") {
+    players.forEach(player => {
+      if (onlineDiscoveredImpostors.has(player.id)) {
+        return;
+      }
+      const option = document.createElement("option");
+      option.value = player.id;
+      option.textContent = player.name;
+      impostorSelectionSelect.appendChild(option);
+    });
+  } else {
+    const discovered = new Set(getOfflineDiscoveredImpostors());
+    players.forEach(player => {
+      if (discovered.has(player.index)) {
+        return;
+      }
+      const option = document.createElement("option");
+      option.value = String(player.index);
+      option.textContent = player.name;
+      impostorSelectionSelect.appendChild(option);
+    });
+  }
+  if (btnConfirmImpostor) {
+    btnConfirmImpostor.disabled = impostorSelectionSelect.options.length === 0;
+  }
+}
+
+function setImpostorSelectionMessage(text) {
+  if (!impostorSelectionMessage) {
+    return;
+  }
+  impostorSelectionMessage.textContent = text;
+  impostorSelectionMessage.classList.remove("hidden");
+  if (impostorSelectionWait) {
+    impostorSelectionWait.classList.add("hidden");
+  }
+}
+
+function clearImpostorSelectionMessage() {
+  if (!impostorSelectionMessage) {
+    return;
+  }
+  impostorSelectionMessage.textContent = "";
+  impostorSelectionMessage.classList.add("hidden");
+}
+
+function updateRoundEndActions() {
+  if (!btnNextRound || !btnEndGame) {
+    return;
+  }
+  const isOnline = onlineMode === "online";
+  const remaining = isOnline ? getOnlineRemainingImpostors() : getOfflineRemainingImpostors();
+  const canShowActions = remaining === 0;
+  const isHost = !isOnline || isOnlineHost();
+  let canAdvance = false;
+  if (canShowActions && isHost) {
+    if (isOnline) {
+      const gameState = roomState && roomState.game;
+      canAdvance = gameState
+        && Number.isFinite(gameState.currentRound)
+        && Number.isFinite(gameState.totalRounds)
+        && gameState.currentRound < gameState.totalRounds;
+    } else {
+      canAdvance = Number.isFinite(game.currentRound)
+        && Number.isFinite(game.totalRounds)
+        && game.currentRound < game.totalRounds;
+    }
+  }
+  btnNextRound.classList.toggle("hidden", !canShowActions || !isHost || !canAdvance);
+  btnEndGame.classList.toggle("hidden", !canShowActions || !isHost);
+}
+
+function updateImpostorSelectionUI(keepMessage = false) {
+  if (!impostorSelectionContainer) {
+    return;
+  }
+  updateRoundEndTitle();
+  if (!keepMessage) {
+    clearImpostorSelectionMessage();
+  }
+  const isOnline = onlineMode === "online";
+  const isHost = !isOnline || isOnlineHost();
+  const remaining = isOnline ? getOnlineRemainingImpostors() : getOfflineRemainingImpostors();
+  const selectionComplete = remaining === 0;
+  if (impostorSelectionWait) {
+    const hasMessage = impostorSelectionMessage && !impostorSelectionMessage.classList.contains("hidden");
+    const showWait = isOnline && !isHost && !selectionComplete && !hasMessage;
+    impostorSelectionWait.classList.toggle("hidden", !showWait);
+  }
+  const showSelectionControls = isHost && !selectionComplete;
+  if (impostorSelectionLabel) {
+    impostorSelectionLabel.classList.toggle("hidden", !showSelectionControls);
+  }
+  if (btnConfirmImpostor) {
+    btnConfirmImpostor.classList.toggle("hidden", !showSelectionControls);
+  }
+  if (showSelectionControls) {
+    renderImpostorSelectionOptions();
+  }
+  updateRoundEndActions();
+}
+
+function showImpostorSelectionScreen() {
+  roleOverlay.classList.add("hidden");
+  hideRoundCountdown();
+  updateRoundEndTitle();
+  showScreen("roundEnd");
+  updateImpostorSelectionUI();
+}
+
+function resetOnlineSelectionState(gameState) {
+  onlineSelectionActive = false;
+  onlineSelectionRemaining = gameState && Number.isFinite(gameState.impostors)
+    ? gameState.impostors
+    : null;
+  onlineDiscoveredImpostors = new Set();
 }
 
 function renderRoleText() {
@@ -289,7 +558,16 @@ function renderRoleText() {
   }
 
   if (game.roles[activeIndex] === "IMPOSTOR") {
-    roleText.textContent = t("impostor");
+    roleText.textContent = "";
+    const titleEl = document.createElement("span");
+    titleEl.textContent = t("impostor");
+    roleText.appendChild(titleEl);
+    if (game.hintMode && game.hintWord) {
+      const hintEl = document.createElement("span");
+      hintEl.className = "impostor-hint";
+      hintEl.textContent = formatText(t("impostorHint"), { hint: game.hintWord });
+      roleText.appendChild(hintEl);
+    }
     roleText.classList.add("role-impostor");
   } else {
     roleText.innerHTML = `${t("wordIs")} <span class="word-highlight">
@@ -632,16 +910,20 @@ function updateOnlineHostControls() {
   }
   const gameState = roomState && roomState.game;
   const gameActive = gameState && gameState.started && !gameState.finished;
-  const canAdvance = gameState
-    && Number.isFinite(gameState.currentRound)
-    && Number.isFinite(gameState.totalRounds)
-    && gameState.currentRound < gameState.totalRounds;
+  const remaining = getOnlineRemainingImpostors();
+  const selectionComplete = remaining === 0;
   onlineHostControls.classList.toggle("hidden", !isOnlineHost() || !gameActive);
+  if (btnOnlineSelectImpostor) {
+    btnOnlineSelectImpostor.classList.toggle(
+      "hidden",
+      !isOnlineHost() || !gameActive || selectionComplete || onlineSelectionActive
+    );
+  }
   if (btnOnlineNextRound) {
-    btnOnlineNextRound.classList.toggle("hidden", !isOnlineHost() || !gameActive || !canAdvance);
+    btnOnlineNextRound.classList.add("hidden");
   }
   if (btnOnlineEndGame) {
-    btnOnlineEndGame.classList.toggle("hidden", !isOnlineHost() || !gameActive);
+    btnOnlineEndGame.classList.add("hidden");
   }
 }
 
@@ -743,6 +1025,7 @@ function resetOnlineState() {
   }
   clearLobby();
   hideRoundCountdown();
+  resetOnlineSelectionState(null);
   if (onlineHostControls) {
     onlineHostControls.classList.add("hidden");
   }
@@ -857,6 +1140,7 @@ function attemptAutoReconnect() {
     roomState = response.room;
     roleOverlay.classList.add("hidden");
     hideRoundCountdown();
+    resetOnlineSelectionState(roomState.game);
     onlineConfigOpen = true;
     showScreen("start");
     renderLobby();
@@ -900,6 +1184,7 @@ function ensureSocket() {
         game: payload.game || null,
       };
       hideRoundCountdown();
+      resetOnlineSelectionState(roomState.game);
       renderLobby();
     }
   });
@@ -929,7 +1214,62 @@ function ensureSocket() {
     };
     hideRoundCountdown();
     roleOverlay.classList.add("hidden");
+    resetOnlineSelectionState(roomState.game);
     renderLobby();
+  });
+  socket.on("impostor_selection_started", payload => {
+    if (onlineMode !== "online") {
+      return;
+    }
+    const remaining = payload && Number.isFinite(payload.remaining)
+      ? payload.remaining
+      : getOnlineRemainingImpostors();
+    onlineSelectionActive = true;
+    onlineSelectionRemaining = remaining;
+    showImpostorSelectionScreen();
+  });
+  socket.on("impostor_selection_result", payload => {
+    if (!payload || onlineMode !== "online") {
+      return;
+    }
+    if (screens.roundEnd.classList.contains("hidden")) {
+      updateRoundEndTitle();
+      showScreen("roundEnd");
+    }
+    const playerId = payload.playerId;
+    const correct = Boolean(payload.correct);
+    if (Number.isFinite(payload.remaining)) {
+      onlineSelectionRemaining = payload.remaining;
+    }
+    if (Number.isFinite(onlineSelectionRemaining)) {
+      onlineSelectionActive = onlineSelectionRemaining > 0;
+    }
+    if (correct && playerId) {
+      onlineDiscoveredImpostors.add(playerId);
+    }
+    let playerName = payload.playerName || "";
+    if (!playerName && roomState && Array.isArray(roomState.players)) {
+      const match = roomState.players.find(player => player.id === playerId);
+      if (match && match.name) {
+        playerName = match.name;
+      }
+    }
+    if (!playerName) {
+      playerName = playerId || "";
+    }
+    if (onlineSelectionRemaining === 0) {
+      setImpostorSelectionMessage(t("impostorAllFound"));
+    } else if (correct) {
+      setImpostorSelectionMessage(formatText(t("impostorGuessCorrect"), {
+        name: playerName,
+        remaining: onlineSelectionRemaining,
+      }));
+    } else {
+      setImpostorSelectionMessage(formatText(t("impostorGuessWrong"), {
+        name: playerName,
+      }));
+    }
+    updateImpostorSelectionUI(true);
   });
   socket.on("game_restarted", payload => {
     if (payload && payload.code && Array.isArray(payload.players)) {
@@ -941,6 +1281,7 @@ function ensureSocket() {
       };
       hideRoundCountdown();
       roleOverlay.classList.add("hidden");
+      resetOnlineSelectionState(roomState.game);
       renderLobby();
     }
   });
@@ -955,6 +1296,7 @@ function ensureSocket() {
     }
     hideRoundCountdown();
     roleOverlay.classList.add("hidden");
+    resetOnlineSelectionState(null);
     setMode("online");
     showScreen("end");
     renderLobby();
@@ -980,6 +1322,8 @@ function ensureSocket() {
       roles: Array(players.length).fill(null),
       currentPlayer: turnIndex,
       playerNames: players.map(player => player.name),
+      hintMode: Boolean(payload.hint),
+      hintWord: payload.hint || "",
     };
     game.roles[safeIndex] = payload.role;
     showRoleScreen();
@@ -990,6 +1334,7 @@ function ensureSocket() {
     clearLobby();
     clearOnlineIdentity();
     hideRoundCountdown();
+    resetOnlineSelectionState(null);
   });
   return socket;
 }
@@ -1143,6 +1488,7 @@ if (btnStartOnline) {
     const impostors = parseInt(onlineImpostorsInput ? onlineImpostorsInput.value : "", 10);
     const totalRounds = parseInt(onlineRoundsInput ? onlineRoundsInput.value : "", 10);
     const theme = onlineThemeSelect ? onlineThemeSelect.value : "";
+    const hintMode = onlineHintModeInput ? onlineHintModeInput.checked : false;
     const messages = currentLang === "en"
       ? {
         playersMin: "Players must be at least 3.",
@@ -1208,6 +1554,7 @@ if (btnStartOnline) {
         theme,
         lang: currentLang,
         customWords: isCustomTheme ? customWords : [],
+        hintMode,
       },
       (err, response) => {
         if (err || !response || !response.ok) {
@@ -1236,6 +1583,26 @@ if (btnOnlineNextRound) {
       return;
     }
     socket.timeout(4000).emit("next_round", {}, (err, response) => {
+      if (err || !response || !response.ok) {
+        alert(t("onlineError"));
+      }
+    });
+  };
+}
+
+if (btnOnlineSelectImpostor) {
+  btnOnlineSelectImpostor.onclick = () => {
+    if (!socket || !roomState) {
+      return;
+    }
+    if (roomState.hostId !== socket.id) {
+      alert(t("notHost"));
+      return;
+    }
+    if (onlineSelectionActive) {
+      return;
+    }
+    socket.timeout(4000).emit("start_impostor_selection", {}, (err, response) => {
       if (err || !response || !response.ok) {
         alert(t("onlineError"));
       }
@@ -1312,6 +1679,7 @@ btnConfigNext.onclick = () => {
   const players = parseInt(playersInput.value, 10);
   const impostors = parseInt(impostorsInput.value, 10);
   const totalRounds = parseInt(roundsInput.value, 10);
+  const hintMode = hintModeInput ? hintModeInput.checked : false;
   const messages = currentLang === "en"
     ? {
       playersMin: "Players must be at least 3.",
@@ -1387,6 +1755,7 @@ btnConfigNext.onclick = () => {
     theme: themeValue,
     playerNames,
     customWords: customWordsValue,
+    hintMode,
   };
 
   game = {
@@ -1399,6 +1768,8 @@ btnConfigNext.onclick = () => {
     playerNames,
     theme: themeValue,
     customWords: customWordsValue,
+    hintMode,
+    hintWord: "",
   };
 
   startRound();
@@ -1408,6 +1779,7 @@ btnConfigNext.onclick = () => {
 
 function startRound() {
   game.currentPlayer = 0;
+  game.discoveredImpostors = [];
 
   let words;
   if (themeSelect.value === "custom") {
@@ -1428,6 +1800,7 @@ function startRound() {
   }
 
   const word = words[Math.floor(Math.random() * words.length)];
+  game.hintWord = game.hintMode ? generateHintWord(word, game.theme, currentLang) : "";
   const roles = Array(game.players).fill(word);
 
   let assigned = 0;
@@ -1494,17 +1867,88 @@ btnNextPlayer.onclick = () => {
   }
 };
 
-function showEndOfRound() {
-  updateRoundEndTitle();
-  btnNextRound.classList.toggle(
-    "hidden",
-    game.currentRound >= game.totalRounds
-  );
+if (btnConfirmImpostor) {
+  btnConfirmImpostor.onclick = () => {
+    if (onlineMode === "online") {
+      if (!socket || !roomState) {
+        return;
+      }
+      if (!isOnlineHost()) {
+        return;
+      }
+      const playerId = impostorSelectionSelect ? impostorSelectionSelect.value : "";
+      if (!playerId) {
+        return;
+      }
+      socket.timeout(4000).emit(
+        "submit_impostor_selection",
+        { playerId },
+        (err, response) => {
+          if (err || !response || !response.ok) {
+            alert(t("onlineError"));
+          }
+        }
+      );
+      return;
+    }
+    if (!impostorSelectionSelect) {
+      return;
+    }
+    const selectedIndex = parseInt(impostorSelectionSelect.value, 10);
+    if (!Number.isFinite(selectedIndex)) {
+      return;
+    }
+    const discovered = getOfflineDiscoveredImpostors();
+    const isImpostor = Array.isArray(game.roles)
+      && game.roles[selectedIndex] === "IMPOSTOR";
+    if (isImpostor && !discovered.includes(selectedIndex)) {
+      discovered.push(selectedIndex);
+      game.discoveredImpostors = discovered;
+      saveGame();
+      const remaining = getOfflineRemainingImpostors();
+      if (remaining === 0) {
+        setImpostorSelectionMessage(t("impostorAllFound"));
+      } else {
+        const players = getImpostorSelectionPlayers();
+        const name = players[selectedIndex] ? players[selectedIndex].name : formatText(t("playerLabel"), { num: selectedIndex + 1 });
+        setImpostorSelectionMessage(formatText(t("impostorGuessCorrect"), {
+          name,
+          remaining,
+        }));
+      }
+    } else {
+      const players = getImpostorSelectionPlayers();
+      const name = players[selectedIndex] ? players[selectedIndex].name : formatText(t("playerLabel"), { num: selectedIndex + 1 });
+      setImpostorSelectionMessage(formatText(t("impostorGuessWrong"), { name }));
+    }
+    updateImpostorSelectionUI(true);
+  };
+}
 
-  showScreen("roundEnd");
+function showEndOfRound() {
+  showImpostorSelectionScreen();
 }
 
 btnNextRound.onclick = () => {
+  if (onlineMode === "online") {
+    if (!socket || !roomState) {
+      return;
+    }
+    if (!isOnlineHost()) {
+      alert(t("notHost"));
+      return;
+    }
+    const gameState = roomState.game;
+    if (!gameState || gameState.currentRound >= gameState.totalRounds) {
+      return;
+    }
+    socket.timeout(4000).emit("next_round", {}, (err, response) => {
+      if (err || !response || !response.ok) {
+        alert(t("onlineError"));
+      }
+    });
+    return;
+  }
   if (game.currentRound >= game.totalRounds) {
     return;
   }
@@ -1514,6 +1958,24 @@ btnNextRound.onclick = () => {
 };
 
 btnEndGame.onclick = () => {
+  if (onlineMode === "online") {
+    if (!socket || !roomState) {
+      return;
+    }
+    if (!isOnlineHost()) {
+      alert(t("notHost"));
+      return;
+    }
+    if (!confirm(t("endGameConfirm"))) {
+      return;
+    }
+    socket.timeout(4000).emit("end_game", {}, (err, response) => {
+      if (err || !response || !response.ok) {
+        alert(t("onlineError"));
+      }
+    });
+    return;
+  }
   if (!confirm(t("endGameConfirm"))) {
     return;
   }
@@ -1563,6 +2025,9 @@ if (btnRestartSame) {
     if (lastConfig.theme === "custom") {
       customWordsInput.value = lastConfig.customWords || "";
     }
+    if (hintModeInput) {
+      hintModeInput.checked = Boolean(lastConfig.hintMode);
+    }
     customWordsContainer.classList.toggle(
       "hidden",
       themeSelect.value !== "custom"
@@ -1581,6 +2046,8 @@ if (btnRestartSame) {
         : [],
       theme: lastConfig.theme,
       customWords: lastConfig.customWords,
+      hintMode: Boolean(lastConfig.hintMode),
+      hintWord: "",
     };
 
     startRound();
@@ -1596,6 +2063,15 @@ const savedGame = localStorage.getItem("impostor-game");
 
 if (savedGame) {
   game = JSON.parse(savedGame);
+  if (!Array.isArray(game.discoveredImpostors)) {
+    game.discoveredImpostors = [];
+  }
+  if (typeof game.hintMode !== "boolean") {
+    game.hintMode = false;
+  }
+  if (typeof game.hintWord !== "string") {
+    game.hintWord = "";
+  }
   if (!lastConfig && game.players && game.impostors && game.totalRounds) {
     lastConfig = {
       players: game.players,
@@ -1604,6 +2080,7 @@ if (savedGame) {
       theme: game.theme,
       playerNames: Array.isArray(game.playerNames) ? game.playerNames : [],
       customWords: game.customWords || "",
+      hintMode: Boolean(game.hintMode),
     };
   }
 

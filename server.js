@@ -54,6 +54,21 @@ const io = new Server(server, {
 
 const rooms = new Map();
 const ROUND_COUNTDOWN_SECONDS = 3;
+const THEME_HINTS = {
+  all: { es: "mezcla", en: "mixed" },
+  food: { es: "comida", en: "food" },
+  places: { es: "lugar", en: "place" },
+  animals: { es: "animal", en: "animal" },
+  movies_series: { es: "cine", en: "movie" },
+  sports: { es: "deporte", en: "sport" },
+  professions: { es: "oficio", en: "job" },
+  everyday_objects: { es: "objeto", en: "object" },
+  transport: { es: "transporte", en: "transport" },
+  actions_verbs: { es: "acción", en: "action" },
+  hobbies: { es: "ocio", en: "hobby" },
+  footballers: { es: "futbolista", en: "footballer" },
+};
+const CUSTOM_HINTS = { es: "Personalizado", en: "Custom" };
 
 function generateCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -76,6 +91,7 @@ function roomSnapshot(room) {
       totalRounds: room.game.totalRounds,
       impostors: room.game.impostors,
       theme: room.game.theme,
+      hintMode: room.game.hintMode,
     }
     : null;
   return {
@@ -95,8 +111,58 @@ function getWordList(theme, lang) {
     || WORDS[theme].words.en;
 }
 
+function normalizeWord(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getThemeHint(themeKey, lang) {
+  const theme = WORDS && WORDS[themeKey];
+  const hint = (theme && theme.hint) || THEME_HINTS[themeKey];
+  if (!hint) {
+    return "";
+  }
+  if (theme && !theme.hint) {
+    theme.hint = hint;
+  }
+  return hint[lang] || hint.es || hint.en || "";
+}
+
+function generateHintWord(secretWord, themeKey, lang) {
+  const normalized = normalizeWord(secretWord);
+  if (!normalized) {
+    return "";
+  }
+  if (themeKey === "custom") {
+    return CUSTOM_HINTS[lang] || CUSTOM_HINTS.es || "";
+  }
+  const theme = WORDS && WORDS[themeKey];
+  if (!theme || !theme.words) {
+    return "";
+  }
+  if (!theme.hintMap) {
+    theme.hintMap = {};
+  }
+  if (!theme.hintMap[lang]) {
+    const words = theme.words[lang] || theme.words.es || theme.words.en || [];
+    const hintValue = getThemeHint(themeKey, lang);
+    const map = {};
+    if (Array.isArray(words)) {
+      words.forEach(word => {
+        const key = normalizeWord(word);
+        if (key && !map[key]) {
+          map[key] = hintValue;
+        }
+      });
+    }
+    theme.hintMap[lang] = map;
+  }
+  return theme.hintMap[lang][normalized] || getThemeHint(themeKey, lang);
+}
+
 function assignRoles(room) {
   const playerIds = Array.from(room.players.keys());
+  room.discoveredImpostors = new Set();
+  room.selectionActive = false;
   const customWords = Array.isArray(room.game.customWords) ? room.game.customWords : [];
   let wordList = null;
   if (room.game.theme === "custom") {
@@ -111,6 +177,9 @@ function assignRoles(room) {
     }
   }
   const word = wordList[Math.floor(Math.random() * wordList.length)];
+  room.game.hintWord = room.game.hintMode
+    ? generateHintWord(word, room.game.theme, room.game.lang)
+    : "";
   const roles = playerIds.map(() => word);
   let assigned = 0;
   while (assigned < room.game.impostors) {
@@ -126,6 +195,25 @@ function assignRoles(room) {
   });
   room.game.word = word;
   return { playerIds, roles };
+}
+
+function getRemainingImpostors(room) {
+  if (!room || !room.game) {
+    return 0;
+  }
+  const found = room.discoveredImpostors ? room.discoveredImpostors.size : 0;
+  return Math.max(room.game.impostors - found, 0);
+}
+
+function getRoomHintWord(room) {
+  if (!room || !room.game || !room.game.hintMode) {
+    return "";
+  }
+  if (room.game.hintWord) {
+    return room.game.hintWord;
+  }
+  room.game.hintWord = generateHintWord(room.game.word, room.game.theme, room.game.lang);
+  return room.game.hintWord;
 }
 
 function normalizeCustomWords(input) {
@@ -165,6 +253,8 @@ io.on("connection", socket => {
       players: new Map(),
       game: null,
       roles: new Map(),
+      discoveredImpostors: new Set(),
+      selectionActive: false,
     };
     room.players.set(socket.id, name);
     rooms.set(code, room);
@@ -259,12 +349,14 @@ io.on("connection", socket => {
       }
       const role = impostorCount < room.game.impostors ? "IMPOSTOR" : room.game.word;
       room.roles.set(socket.id, role);
+      const hintWord = role === "IMPOSTOR" ? getRoomHintWord(room) : "";
       io.to(socket.id).emit("private_role", {
         role,
         playerIndex,
         round: room.game.currentRound,
         totalRounds: room.game.totalRounds,
         impostors: room.game.impostors,
+        hint: hintWord,
       });
     }
   });
@@ -296,6 +388,7 @@ io.on("connection", socket => {
     const theme = typeof payload.theme === "string" ? payload.theme : "";
     const isCustomTheme = theme === "custom";
     const lang = typeof payload.lang === "string" ? payload.lang : "es";
+    const hintMode = Boolean(payload.hintMode);
     const customWords = normalizeCustomWords(payload.customWords);
     const useCustomWords = isCustomTheme ? customWords : [];
     const playerIds = Array.from(room.players.keys());
@@ -334,6 +427,7 @@ io.on("connection", socket => {
       theme,
       lang,
       customWords: useCustomWords,
+      hintMode,
     };
 
     const countdownSeconds = ROUND_COUNTDOWN_SECONDS;
@@ -356,6 +450,7 @@ io.on("connection", socket => {
         theme: pending.theme,
         lang: pending.lang,
         customWords: pending.customWords,
+        hintMode: pending.hintMode,
       };
       const assigned = assignRoles(activeRoom);
       if (!assigned) {
@@ -374,12 +469,15 @@ io.on("connection", socket => {
       });
       io.to(code).emit("room_update", snapshot);
       assigned.playerIds.forEach((id, index) => {
+        const role = assigned.roles[index];
+        const hintWord = role === "IMPOSTOR" ? getRoomHintWord(activeRoom) : "";
         io.to(id).emit("private_role", {
-          role: assigned.roles[index],
+          role,
           playerIndex: index,
           round: activeRoom.game.currentRound,
           totalRounds: activeRoom.game.totalRounds,
           impostors: activeRoom.game.impostors,
+          hint: hintWord,
         });
       });
       activeRoom.countdown = null;
@@ -406,6 +504,10 @@ io.on("connection", socket => {
     }
     if (!room.game || !room.game.started || room.game.finished) {
       reply({ ok: false, error: "not_started" });
+      return;
+    }
+    if (getRemainingImpostors(room) > 0) {
+      reply({ ok: false, error: "impostors_remaining" });
       return;
     }
     if (room.game.currentRound >= room.game.totalRounds) {
@@ -455,12 +557,15 @@ io.on("connection", socket => {
       });
       io.to(code).emit("room_update", snapshot);
       assigned.playerIds.forEach((id, index) => {
+        const role = assigned.roles[index];
+        const hintWord = role === "IMPOSTOR" ? getRoomHintWord(activeRoom) : "";
         io.to(id).emit("private_role", {
-          role: assigned.roles[index],
+          role,
           playerIndex: index,
           round: activeRoom.game.currentRound,
           totalRounds: activeRoom.game.totalRounds,
           impostors: activeRoom.game.impostors,
+          hint: hintWord,
         });
       });
       activeRoom.countdown = null;
@@ -469,6 +574,90 @@ io.on("connection", socket => {
     io.to(code).emit("round_countdown", {
       seconds: countdownSeconds,
       round: nextRound,
+    });
+    reply({ ok: true });
+  });
+
+  socket.on("start_impostor_selection", (payload = {}, cb) => {
+    const reply = typeof cb === "function" ? cb : () => {};
+    const code = socket.data.roomCode;
+    if (!code || !rooms.has(code)) {
+      reply({ ok: false, error: "not_found" });
+      return;
+    }
+
+    const room = rooms.get(code);
+    if (room.hostId !== socket.id) {
+      reply({ ok: false, error: "not_host" });
+      return;
+    }
+    if (!room.game || !room.game.started || room.game.finished) {
+      reply({ ok: false, error: "not_started" });
+      return;
+    }
+    if (room.selectionActive) {
+      reply({ ok: false, error: "selection_active" });
+      return;
+    }
+
+    const remaining = getRemainingImpostors(room);
+    if (remaining === 0) {
+      reply({ ok: false, error: "complete" });
+      return;
+    }
+    room.selectionActive = true;
+    io.to(code).emit("impostor_selection_started", {
+      round: room.game.currentRound,
+      remaining,
+    });
+    reply({ ok: true });
+  });
+
+  socket.on("submit_impostor_selection", (payload = {}, cb) => {
+    const reply = typeof cb === "function" ? cb : () => {};
+    const code = socket.data.roomCode;
+    if (!code || !rooms.has(code)) {
+      reply({ ok: false, error: "not_found" });
+      return;
+    }
+
+    const room = rooms.get(code);
+    if (room.hostId !== socket.id) {
+      reply({ ok: false, error: "not_host" });
+      return;
+    }
+    if (!room.game || !room.game.started || room.game.finished) {
+      reply({ ok: false, error: "not_started" });
+      return;
+    }
+    if (!room.selectionActive) {
+      reply({ ok: false, error: "selection_inactive" });
+      return;
+    }
+
+    const playerId = typeof payload.playerId === "string" ? payload.playerId : "";
+    if (!playerId || !room.players.has(playerId)) {
+      reply({ ok: false, error: "invalid_player" });
+      return;
+    }
+    const role = room.roles ? room.roles.get(playerId) : null;
+    const correct = role === "IMPOSTOR";
+    if (correct) {
+      if (!room.discoveredImpostors) {
+        room.discoveredImpostors = new Set();
+      }
+      room.discoveredImpostors.add(playerId);
+    }
+    const remaining = getRemainingImpostors(room);
+    if (remaining === 0) {
+      room.selectionActive = false;
+    }
+
+    io.to(code).emit("impostor_selection_result", {
+      playerId,
+      playerName: room.players.get(playerId),
+      correct,
+      remaining,
     });
     reply({ ok: true });
   });
@@ -490,6 +679,10 @@ io.on("connection", socket => {
       reply({ ok: false, error: "not_started" });
       return;
     }
+    if (getRemainingImpostors(room) > 0) {
+      reply({ ok: false, error: "impostors_remaining" });
+      return;
+    }
 
     if (room.countdown) {
       clearTimeout(room.countdown);
@@ -499,6 +692,8 @@ io.on("connection", socket => {
     room.game.started = false;
     room.game.finished = true;
     room.roles = new Map();
+    room.discoveredImpostors = new Set();
+    room.selectionActive = false;
 
     const snapshot = roomSnapshot(room);
     reply({ ok: true, room: snapshot });
@@ -559,12 +754,15 @@ io.on("connection", socket => {
     });
     io.to(code).emit("room_update", snapshot);
     assigned.playerIds.forEach((id, index) => {
+      const role = assigned.roles[index];
+      const hintWord = role === "IMPOSTOR" ? getRoomHintWord(room) : "";
       io.to(id).emit("private_role", {
-        role: assigned.roles[index],
+        role,
         playerIndex: index,
         round: room.game.currentRound,
         totalRounds: room.game.totalRounds,
         impostors: room.game.impostors,
+        hint: hintWord,
       });
     });
   });
