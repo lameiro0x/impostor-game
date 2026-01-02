@@ -10,6 +10,7 @@ try {
 } catch (err) {
   WORDS = {};
 }
+buildAllThemes();
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split("?")[0];
@@ -106,13 +107,85 @@ function getWordList(theme, lang) {
   if (!theme || !WORDS[theme] || !WORDS[theme].words) {
     return null;
   }
-  return WORDS[theme].words[lang]
+  const list = WORDS[theme].words[lang]
     || WORDS[theme].words.es
     || WORDS[theme].words.en;
+  return Array.isArray(list) ? list : null;
 }
 
 function normalizeWord(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function getEntryWord(entry) {
+  if (typeof entry === "string") {
+    return entry.trim();
+  }
+  if (entry && typeof entry.word === "string") {
+    return entry.word.trim();
+  }
+  return "";
+}
+
+function getEntryHint(entry, lang) {
+  if (!entry || typeof entry !== "object") {
+    return "";
+  }
+  const hint = entry.hint;
+  if (typeof hint === "string") {
+    return hint.trim();
+  }
+  if (hint && typeof hint === "object") {
+    const localized = hint[lang] || hint.es || hint.en || "";
+    return typeof localized === "string" ? localized.trim() : "";
+  }
+  return "";
+}
+
+function buildAllThemes() {
+  if (!WORDS || Object.keys(WORDS).length === 0) {
+    return;
+  }
+  const themeKeys = Object.keys(WORDS).filter(key => key !== "all");
+  const allWords = { es: [], en: [] };
+  const indexByWord = { es: new Map(), en: new Map() };
+  themeKeys.forEach(key => {
+    const theme = WORDS[key];
+    if (!theme || !theme.words) {
+      return;
+    }
+    ["es", "en"].forEach(lang => {
+      const list = theme.words[lang] || theme.words.es || theme.words.en || [];
+      if (!Array.isArray(list)) {
+        return;
+      }
+      list.forEach(entry => {
+        const word = getEntryWord(entry);
+        const normalized = normalizeWord(word);
+        if (!normalized) {
+          return;
+        }
+        const existingIndex = indexByWord[lang].get(normalized);
+        const hint = getEntryHint(entry, lang);
+        if (Number.isFinite(existingIndex)) {
+          const existing = allWords[lang][existingIndex];
+          if (existing && !existing.hint && hint) {
+            existing.hint = hint;
+          }
+          return;
+        }
+        indexByWord[lang].set(normalized, allWords[lang].length);
+        allWords[lang].push({ word, hint });
+      });
+    });
+  });
+  const labelEs = WORDS.all && WORDS.all.es ? WORDS.all.es : "🌐 Todos los temas";
+  const labelEn = WORDS.all && WORDS.all.en ? WORDS.all.en : "🌐 All themes";
+  WORDS.all = {
+    es: labelEs,
+    en: labelEn,
+    words: allWords,
+  };
 }
 
 function getThemeHint(themeKey, lang) {
@@ -127,42 +200,41 @@ function getThemeHint(themeKey, lang) {
   return hint[lang] || hint.es || hint.en || "";
 }
 
-function generateHintWord(secretWord, themeKey, lang) {
-  const normalized = normalizeWord(secretWord);
-  if (!normalized) {
-    return "";
+function generateHintWord(entry, themeKey, lang) {
+  const hint = getEntryHint(entry, lang);
+  if (hint) {
+    return hint;
   }
   if (themeKey === "custom") {
     return CUSTOM_HINTS[lang] || CUSTOM_HINTS.es || "";
   }
-  const theme = WORDS && WORDS[themeKey];
-  if (!theme || !theme.words) {
+  return getThemeHint(themeKey, lang);
+}
+
+function findEntryHint(themeKey, lang, word) {
+  const list = getWordList(themeKey, lang);
+  if (!Array.isArray(list)) {
     return "";
   }
-  if (!theme.hintMap) {
-    theme.hintMap = {};
-  }
-  if (!theme.hintMap[lang]) {
-    const words = theme.words[lang] || theme.words.es || theme.words.en || [];
-    const hintValue = getThemeHint(themeKey, lang);
-    const map = {};
-    if (Array.isArray(words)) {
-      words.forEach(word => {
-        const key = normalizeWord(word);
-        if (key && !map[key]) {
-          map[key] = hintValue;
-        }
-      });
+  const target = normalizeWord(word);
+  for (const entry of list) {
+    const entryWord = normalizeWord(getEntryWord(entry));
+    if (entryWord && entryWord === target) {
+      return getEntryHint(entry, lang);
     }
-    theme.hintMap[lang] = map;
   }
-  return theme.hintMap[lang][normalized] || getThemeHint(themeKey, lang);
+  return "";
 }
 
 function assignRoles(room) {
   const playerIds = Array.from(room.players.keys());
   room.discoveredImpostors = new Set();
   room.selectionActive = false;
+  const usedSet = new Set(
+    Array.isArray(room.game.usedWords)
+      ? room.game.usedWords.map(normalizeWord).filter(Boolean)
+      : []
+  );
   const customWords = Array.isArray(room.game.customWords) ? room.game.customWords : [];
   let wordList = null;
   if (room.game.theme === "custom") {
@@ -176,10 +248,30 @@ function assignRoles(room) {
       return null;
     }
   }
-  const word = wordList[Math.floor(Math.random() * wordList.length)];
+  const entries = wordList
+    .map(entry => ({
+      entry,
+      word: getEntryWord(entry),
+      normalized: normalizeWord(getEntryWord(entry)),
+    }))
+    .filter(item => item.word && item.normalized);
+  const uniqueMap = new Map();
+  entries.forEach(item => {
+    if (!uniqueMap.has(item.normalized)) {
+      uniqueMap.set(item.normalized, item);
+    }
+  });
+  const available = Array.from(uniqueMap.values()).filter(item => !usedSet.has(item.normalized));
+  if (available.length === 0) {
+    return null;
+  }
+  const picked = available[Math.floor(Math.random() * available.length)];
+  const word = picked.word;
   room.game.hintWord = room.game.hintMode
-    ? generateHintWord(word, room.game.theme, room.game.lang)
+    ? generateHintWord(picked.entry, room.game.theme, room.game.lang)
     : "";
+  usedSet.add(picked.normalized);
+  room.game.usedWords = Array.from(usedSet);
   const roles = playerIds.map(() => word);
   let assigned = 0;
   while (assigned < room.game.impostors) {
@@ -212,7 +304,11 @@ function getRoomHintWord(room) {
   if (room.game.hintWord) {
     return room.game.hintWord;
   }
-  room.game.hintWord = generateHintWord(room.game.word, room.game.theme, room.game.lang);
+  const hint = findEntryHint(room.game.theme, room.game.lang, room.game.word)
+    || (room.game.theme === "custom"
+      ? (CUSTOM_HINTS[room.game.lang] || CUSTOM_HINTS.es || "")
+      : getThemeHint(room.game.theme, room.game.lang));
+  room.game.hintWord = hint;
   return room.game.hintWord;
 }
 
@@ -412,12 +508,19 @@ io.on("connection", socket => {
       }
       wordList = useCustomWords;
     } else {
-      wordList = WORDS[theme].words[lang]
-        || WORDS[theme].words.es
-        || WORDS[theme].words.en;
+      wordList = getWordList(theme, lang);
     }
     if (!Array.isArray(wordList) || wordList.length === 0) {
       reply({ ok: false, error: "invalid_theme" });
+      return;
+    }
+    const uniqueCount = new Set(
+      wordList
+        .map(entry => normalizeWord(getEntryWord(entry)))
+        .filter(Boolean)
+    ).size;
+    if (uniqueCount < totalRounds) {
+      reply({ ok: false, error: "invalid_settings" });
       return;
     }
 
@@ -451,6 +554,7 @@ io.on("connection", socket => {
         lang: pending.lang,
         customWords: pending.customWords,
         hintMode: pending.hintMode,
+        usedWords: [],
       };
       const assigned = assignRoles(activeRoom);
       if (!assigned) {
@@ -738,6 +842,7 @@ io.on("connection", socket => {
     room.game.started = true;
     room.game.finished = false;
     room.game.currentRound = 1;
+    room.game.usedWords = [];
     const assigned = assignRoles(room);
     if (!assigned) {
       reply({ ok: false, error: "invalid_theme" });
